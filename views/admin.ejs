@@ -1,0 +1,22 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <p class="section-kicker">Site owner</p>
+    <h1 class="page-title">Admin Panel</h1>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <div class="cards stat-cards">
+      <div class="card stat"><span class="stat-num"><%= stats.members %></span><span class="muted">Members</span></div>
+      <div class="card stat"><span class="stat-num"><%= stats.rides %></span><span class="muted">Rides</span></div>
+      <div class="card stat"><span class="stat-num"><%= stats.upcomingEvents %></span><span class="muted">Upcoming events</span></div>
+      <div class="card stat"><span class="stat-num"><%= stats.products %></span><span class="muted">Active products</span></div>
+    </div>
+    <div class="cards" style="margin-top:2rem">
+      <a class="card admin-link" href="/admin/events"><h3>Manage Events</h3><p class="muted">Add, edit, or remove meets, cruises, and shows.</p></a>
+      <a class="card admin-link" href="/admin/products"><h3>Manage Products</h3><p class="muted">Stock the merch shop. Empty shop shows a "coming soon" page.</p></a>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>

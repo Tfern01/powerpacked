@@ -1,0 +1,33 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <a class="back-link" href="/admin">&larr; Admin</a>
+    <h1 class="page-title">Manage Events</h1>
+    <a class="btn btn-red" href="/admin/events/new">+ New Event</a>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <% if (events.length) { %>
+      <table class="table">
+        <thead><tr><th>Date</th><th>Title</th><th>Location</th><th></th></tr></thead>
+        <tbody>
+          <% events.forEach(e => { %>
+            <tr>
+              <td><%= e.event_date %></td>
+              <td><strong><%= e.title %></strong></td>
+              <td class="muted"><%= e.location || '—' %></td>
+              <td class="table-actions">
+                <a class="btn btn-outline btn-sm" href="/admin/events/<%= e.id %>/edit">Edit</a>
+                <form action="/admin/events/<%= e.id %>/delete" method="POST" onsubmit="return confirm('Delete this event?')"><button class="btn btn-outline btn-sm btn-danger" type="submit">Delete</button></form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <div class="empty-box"><p class="muted">No events yet. Create the first one.</p></div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

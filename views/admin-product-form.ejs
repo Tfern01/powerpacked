@@ -1,0 +1,26 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <a class="back-link" href="/admin/products">&larr; Products</a>
+    <h1 class="page-title"><%= product.id ? 'Edit Product' : 'New Product' %></h1>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <form class="form" action="<%= formAction %>" method="POST" enctype="multipart/form-data">
+      <label>Name *
+        <input type="text" name="name" required maxlength="120" value="<%= product.name || '' %>">
+      </label>
+      <div class="form-grid">
+        <label>Price (USD) <input type="number" name="price" min="0" step="0.01" value="<%= product.id ? (product.price_cents / 100).toFixed(2) : (product.price || '') %>"></label>
+        <label class="check">Visible in shop <input type="checkbox" name="active" value="1" <%= product.active ? 'checked' : '' %>></label>
+      </div>
+      <label>Description
+        <textarea name="description" rows="5" maxlength="2000"><%= product.description || '' %></textarea>
+      </label>
+      <label>Image (optional)
+        <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+      </label>
+      <% if (product.image) { %><img class="thumb" src="<%= product.image %>" alt=""><% } %>
+      <button class="btn btn-red btn-big" type="submit">Save Product</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>

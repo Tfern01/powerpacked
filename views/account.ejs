@@ -1,0 +1,72 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <p class="section-kicker"><%= user.member_number %></p>
+    <h1 class="page-title">My Account</h1>
+    <p><a href="/member/<%= encodeURIComponent(user.username) %>">View my public profile</a><% if (user.is_admin) { %> &middot; <a href="/admin">Admin panel</a><% } %></p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <% if (welcome) { %><div class="alert alert-good">Welcome to the club, <%= user.username %>! Your member number is <strong><%= user.member_number %></strong>. Set up your profile below.</div><% } %>
+    <% if (notice) { %><div class="alert alert-good"><%= notice %></div><% } %>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+    <h2 class="section-title">Profile</h2>
+    <form class="form" action="/account" method="POST" enctype="multipart/form-data">
+      <div class="form-row">
+        <% if (user.profile_pic) { %><img class="avatar-sm" src="<%= user.profile_pic %>" alt="Current profile picture"><% } %>
+        <label>Profile picture
+          <input type="file" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp">
+        </label>
+      </div>
+      <label>Bio (up to 500 characters)
+        <textarea name="bio" rows="3" maxlength="500"><%= user.bio || '' %></textarea>
+      </label>
+      <label>New password (leave blank to keep current)
+        <input type="password" name="new_password" minlength="8" autocomplete="new-password">
+      </label>
+      <button class="btn btn-red" type="submit">Save Profile</button>
+    </form>
+
+    <h2 class="section-title" style="margin-top:3rem">My Garage</h2>
+    <% if (vehicles.length) { %>
+      <div class="cards">
+        <% vehicles.forEach(v => { %>
+          <article class="card">
+            <% if (v.photo) { %><img class="thumb" src="<%= v.photo %>" alt="<%= v.name %>" loading="lazy"><% } %>
+            <h3><%= v.name %> <% if (v.is_primary) { %><span class="pill">Primary</span><% } %></h3>
+            <p class="muted"><%= [v.year, v.make, v.model].filter(Boolean).join(' ') %></p>
+            <div class="card-actions">
+              <% if (!v.is_primary) { %>
+                <form action="/account/vehicles/<%= v.id %>/primary" method="POST"><button class="btn btn-outline btn-sm" type="submit">Set as primary</button></form>
+              <% } %>
+              <form action="/account/vehicles/<%= v.id %>/delete" method="POST" onsubmit="return confirm('Remove this ride?')"><button class="btn btn-outline btn-sm btn-danger" type="submit">Remove</button></form>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-box"><p class="muted">No rides yet. Add your first one below, your primary ride photo lands on the Members Corner wall.</p></div>
+    <% } %>
+
+    <h3 class="sub-title">Add a ride</h3>
+    <form class="form" action="/account/vehicles" method="POST" enctype="multipart/form-data">
+      <div class="form-grid">
+        <label>Ride name / nickname *
+          <input type="text" name="name" required maxlength="80" placeholder="e.g. Big Red">
+        </label>
+        <label>Year <input type="text" name="year" maxlength="10" placeholder="e.g. 1972"></label>
+        <label>Make <input type="text" name="make" maxlength="60" placeholder="e.g. Chevrolet"></label>
+        <label>Model <input type="text" name="model" maxlength="60" placeholder="e.g. Chevelle"></label>
+      </div>
+      <label>Photo
+        <input type="file" name="photo" accept="image/jpeg,image/png,image/gif,image/webp">
+      </label>
+      <button class="btn btn-red" type="submit">Add Ride</button>
+    </form>
+
+    <form action="/logout" method="POST" style="margin-top:3rem"><button class="btn btn-outline" type="submit">Log out</button></form>
+  </div>
+</section>
+<%- include('partials/footer') %>

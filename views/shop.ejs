@@ -1,0 +1,30 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <p class="section-kicker">Wear the badge</p>
+    <h1 class="page-title">Shop</h1>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <% if (products.length) { %>
+      <div class="cards product-grid">
+        <% products.forEach(p => { %>
+          <a class="card product-card" href="/shop/<%= p.id %>">
+            <% if (p.image) { %><img class="product-img" src="<%= p.image %>" alt="<%= p.name %>" loading="lazy"><% } %>
+            <h3><%= p.name %></h3>
+            <p class="price">$<%= (p.price_cents / 100).toFixed(2) %></p>
+          </a>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-box empty-large shop-soon">
+        <div class="soon-badge">Coming Soon</div>
+        <p class="empty-title">The merch garage is being stocked</p>
+        <p class="muted">Tees, decals, banners, the good stuff is on the way. Join the club and you'll hear about drops first.</p>
+        <a class="btn btn-red" href="/signup">Join Now</a>
+      </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

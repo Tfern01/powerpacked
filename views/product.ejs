@@ -1,0 +1,16 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <a class="back-link" href="/shop">&larr; Back to shop</a>
+    <div class="product-detail">
+      <% if (product.image) { %><img src="<%= product.image %>" alt="<%= product.name %>"><% } %>
+      <div>
+        <h1 class="page-title"><%= product.name %></h1>
+        <p class="price price-big">$<%= (product.price_cents / 100).toFixed(2) %></p>
+        <% if (product.description) { %><p><%= product.description %></p><% } %>
+        <p class="muted">Checkout opens when the merch line officially drops.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>

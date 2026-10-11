@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <p class="section-kicker">Claim your number</p>
+    <h1 class="page-title">Join Powerpacked</h1>
+    <p class="muted">Sign up free and get your official member number, your garage page, and a spot on the Members Corner wall.</p>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <form class="form" action="/signup" method="POST">
+      <label>Username
+        <input type="text" name="username" required minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]{3,20}" title="Letters, numbers, underscores, 3–20 characters" value="<%= values.username || '' %>" autocomplete="username">
+      </label>
+      <label>Email
+        <input type="email" name="email" required value="<%= values.email || '' %>" autocomplete="email">
+      </label>
+      <label>Password
+        <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      </label>
+      <button class="btn btn-red btn-big" type="submit">Join Now!</button>
+    </form>
+    <p class="muted">Already a member? <a href="/login">Log in</a>.</p>
+  </div>
+</section>
+<%- include('partials/footer') %>

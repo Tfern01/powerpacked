@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= title %></title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="icon-btn hamburger" id="hamburgerBtn" aria-label="Open menu" aria-expanded="false">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+
+    <a class="brand" href="/" aria-label="Powerpacked home">
+      <svg class="brand-badge" viewBox="0 0 120 120" width="46" height="46" aria-hidden="true">
+        <circle cx="60" cy="60" r="56" fill="#c1272d"/>
+        <circle cx="60" cy="60" r="56" fill="none" stroke="#f4efe4" stroke-width="3"/>
+        <circle cx="60" cy="60" r="44" fill="none" stroke="#f4efe4" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <defs><path id="badgeArc" d="M60,60 m-36,0 a36,36 0 1,1 72,0 a36,36 0 1,1 -72,0"/></defs>
+        <text font-family="Bebas Neue, sans-serif" font-size="13.5" letter-spacing="3.5" fill="#f4efe4">
+          <textPath href="#badgeArc" startOffset="2%">POWERPACKED</textPath>
+        </text>
+        <text x="60" y="76" text-anchor="middle" font-family="Bebas Neue, sans-serif" font-size="34" fill="#f4efe4">P</text>
+        <text x="60" y="92" text-anchor="middle" font-family="Bebas Neue, sans-serif" font-size="10" letter-spacing="2" fill="#f4efe4">EST. MMXXVI</text>
+      </svg>
+      <span class="brand-word">POWERPACKED</span>
+    </a>
+
+    <div class="topbar-actions">
+      <button class="icon-btn" id="searchBtn" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      </button>
+      <a class="icon-btn" href="<%= currentUser ? '/account' : '/login' %>" aria-label="Account">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-5.5 8-5.5s6.5 1.5 8 5.5"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <nav class="dropdown" id="navDropdown" aria-hidden="true">
+    <a href="/">Home</a>
+    <a href="/events">Events</a>
+    <a href="/gallery">Members Corner</a>
+    <a href="/shop">Shop</a>
+    <% if (currentUser) { %>
+      <a href="/account">My Account</a>
+      <% if (currentUser.is_admin) { %><a href="/admin">Admin Panel</a><% } %>
+      <form action="/logout" method="POST" class="dropdown-logout"><button type="submit">Log out (<%= currentUser.username %>)</button></form>
+    <% } else { %>
+      <a href="/signup" class="dropdown-join">Join Now</a>
+      <a href="/login">Log in</a>
+    <% } %>
+  </nav>
+
+  <div class="searchbar" id="searchBar" aria-hidden="true">
+    <form action="/search" method="GET">
+      <input type="search" name="q" placeholder="Search members, rides, events..." aria-label="Search the site" value="<%= typeof q !== 'undefined' ? q : '' %>">
+      <button type="submit">Search</button>
+    </form>
+  </div>
+</header>
+<main>

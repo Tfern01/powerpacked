@@ -1,0 +1,35 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap member-head">
+    <% if (member.profile_pic) { %>
+      <img class="avatar-lg" src="<%= member.profile_pic %>" alt="<%= member.username %>">
+    <% } else { %>
+      <div class="avatar-lg avatar-fallback"><%= member.username.charAt(0).toUpperCase() %></div>
+    <% } %>
+    <div>
+      <p class="section-kicker"><%= member.member_number %></p>
+      <h1 class="page-title"><%= member.username %></h1>
+      <% if (member.bio) { %><p><%= member.bio %></p><% } %>
+      <p class="muted">Member since <%= new Date(member.created_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) %></p>
+    </div>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <h2 class="section-title">The Garage</h2>
+    <% if (vehicles.length) { %>
+      <div class="cards">
+        <% vehicles.forEach(v => { %>
+          <article class="card">
+            <% if (v.photo) { %><img class="thumb" src="<%= v.photo %>" alt="<%= v.name %>" loading="lazy"><% } %>
+            <h3><%= v.name %> <% if (v.is_primary) { %><span class="pill">Primary</span><% } %></h3>
+            <p class="muted"><%= [v.year, v.make, v.model].filter(Boolean).join(' ') %></p>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-box"><p class="muted"><%= member.username %> hasn't added any rides yet.</p></div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

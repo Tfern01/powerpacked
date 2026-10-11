@@ -1,0 +1,34 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <p class="section-kicker">The clubhouse wall</p>
+    <h1 class="page-title">Members Corner</h1>
+    <p class="muted">Every member's chosen ride, in one place. Click any photo to visit their profile.</p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <% if (members.filter(m => m.display_photo).length) { %>
+      <div class="photo-wall">
+        <% members.filter(m => m.display_photo).forEach(m => { %>
+          <a class="wall-item" href="/member/<%= encodeURIComponent(m.username) %>">
+            <img src="<%= m.display_photo %>" alt="<%= m.ride_name || m.username %>'s ride" loading="lazy">
+            <div class="wall-caption"><strong><%= m.username %></strong><span><%= m.member_number %></span></div>
+          </a>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-box empty-large">
+        <p class="empty-title">The wall is waiting for its first rides</p>
+        <p class="muted">Once members join and upload their vehicles, this page becomes the clubhouse wall.</p>
+        <div class="photo-wall">
+          <% ['/images/placeholder-1.jpg','/images/placeholder-2.jpg','/images/placeholder-3.jpg'].forEach(src => { %>
+            <div class="wall-item"><img src="<%= src %>" alt="Car culture placeholder" loading="lazy"></div>
+          <% }) %>
+        </div>
+        <a class="btn btn-red" href="/signup" style="margin-top:1.5rem">Be the first on the wall</a>
+      </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

@@ -1,0 +1,20 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <p class="section-kicker">Welcome back</p>
+    <h1 class="page-title">Log in</h1>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <form class="form" action="/login" method="POST">
+      <input type="hidden" name="next" value="<%= next %>">
+      <label>Username or email
+        <input type="text" name="login" required autocomplete="username">
+      </label>
+      <label>Password
+        <input type="password" name="password" required autocomplete="current-password">
+      </label>
+      <button class="btn btn-red btn-big" type="submit">Log in</button>
+    </form>
+    <p class="muted">Not a member yet? <a href="/signup">Join Powerpacked</a>.</p>
+  </div>
+</section>
+<%- include('partials/footer') %>

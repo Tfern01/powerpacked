@@ -1,0 +1,101 @@
+<%- include('partials/header') %>
+
+<section class="hero">
+  <img class="hero-img" src="/images/hero.jpg" alt="Classic muscle car at a golden-hour car meet">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <p class="hero-kicker">Powerpacked Car Club</p>
+    <h1 class="hero-title">Driven by<br>Difference</h1>
+    <p class="hero-sub">Unity without Uniformity</p>
+    <div class="hero-cta">
+      <a class="btn btn-red btn-big" href="/signup">Join Now</a>
+      <a class="btn btn-ghost" href="/gallery">See the Rides</a>
+    </div>
+  </div>
+</section>
+
+<section class="mission section">
+  <div class="wrap">
+    <p class="section-kicker">Why we exist</p>
+    <h2 class="section-title">The Mission</h2>
+    <div class="manifesto">
+      <p>Different cars. Different people. One Community! Unity without Uniformity. Powerpacked stems from a deep rooted love and appreciation of the automobile, and the many cultures that surround it. Powerpacked combines all subsects of car culture into one large community where everyone can come together and share their passions, regardless of what brand or model of vehicle they own.</p>
+      <p>Powerpacked is a central hub. It levels the playing field and unites everyone under one central core idea; being Powerpacked! We would have our own unique vehicles, but be part of a large network where we fit in regardless of what we drive.</p>
+      <p>Powerpacked blurs the lines of car manufacturers, styles, type of propulsion, etc. and creates one large community that shares a love of all things that move on 2 or more wheels. The core element of this brand is to be happy driving what you have, showing it off, and networking with unique individuals.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="section-kicker">Mark the calendar</p>
+        <h2 class="section-title"><a href="/events" class="title-link">Upcoming Events</a></h2>
+      </div>
+      <a class="btn btn-outline" href="/events">All Events</a>
+    </div>
+    <% if (upcoming.length) { %>
+      <div class="cards">
+        <% upcoming.forEach(e => { %>
+          <a class="card event-card" href="/events">
+            <div class="event-date-badge">
+              <span class="d"><%= new Date(e.event_date + 'T12:00:00').getDate() %></span>
+              <span class="m"><%= new Date(e.event_date + 'T12:00:00').toLocaleString('en-US', { month: 'short' }).toUpperCase() %></span>
+            </div>
+            <h3><%= e.title %></h3>
+            <% if (e.location) { %><p class="muted"><%= e.location %></p><% } %>
+          </a>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-box">
+        <p class="empty-title">No events on the calendar yet</p>
+        <p class="muted">Meets, cruises, and shows are coming. Check back soon.</p>
+        <a class="btn btn-outline" href="/events">View Calendar</a>
+      </div>
+    <% } %>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <p class="section-kicker">The clubhouse wall</p>
+        <h2 class="section-title"><a href="/gallery" class="title-link">Members Corner</a></h2>
+      </div>
+      <a class="btn btn-outline" href="/gallery">Full Gallery</a>
+    </div>
+    <a class="carousel" href="/gallery" id="cornerCarousel" aria-label="Members Corner gallery">
+      <div class="carousel-track">
+        <% if (corner.length) { %>
+          <% corner.forEach((c, i) => { %>
+            <div class="carousel-slide<%= i === 0 ? ' active' : '' %>">
+              <img src="<%= c.photo %>" alt="<%= c.ride_name || c.username %>'s ride">
+              <div class="carousel-caption"><strong><%= c.username %></strong><span><%= c.member_number %></span></div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <% ['/images/placeholder-1.jpg','/images/placeholder-2.jpg','/images/placeholder-3.jpg'].forEach((src, i) => { %>
+            <div class="carousel-slide<%= i === 0 ? ' active' : '' %>">
+              <img src="<%= src %>" alt="Car culture placeholder">
+              <div class="carousel-caption"><strong>Your ride here</strong><span>Join the club</span></div>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+      <div class="carousel-dots" id="cornerDots"></div>
+    </a>
+  </div>
+</section>
+
+<section class="cta-band">
+  <div class="wrap cta-inner">
+    <h2 class="cta-title">Got a ride? You're one of us.</h2>
+    <p class="cta-sub">Classic muscle, exotic, truck, bike, side-by-side, EV, if it moves, it belongs. Claim your member number today.</p>
+    <a class="btn btn-cream btn-huge" href="/signup">Join Now!</a>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

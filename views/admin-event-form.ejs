@@ -1,0 +1,29 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <a class="back-link" href="/admin/events">&larr; Events</a>
+    <h1 class="page-title"><%= event.id ? 'Edit Event' : 'New Event' %></h1>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <form class="form" action="<%= formAction %>" method="POST" enctype="multipart/form-data">
+      <label>Title *
+        <input type="text" name="title" required maxlength="120" value="<%= event.title || '' %>">
+      </label>
+      <div class="form-grid">
+        <label>Date * <input type="date" name="event_date" required value="<%= event.event_date || '' %>"></label>
+        <label>Time <input type="text" name="event_time" maxlength="20" placeholder="e.g. 6:00 PM" value="<%= event.event_time || '' %>"></label>
+      </div>
+      <label>Location
+        <input type="text" name="location" maxlength="160" value="<%= event.location || '' %>">
+      </label>
+      <label>Description
+        <textarea name="description" rows="5" maxlength="2000"><%= event.description || '' %></textarea>
+      </label>
+      <label>Image (optional)
+        <input type="file" name="image" accept="image/jpeg,image/png,image/gif,image/webp">
+      </label>
+      <% if (event.image) { %><img class="thumb" src="<%= event.image %>" alt=""><% } %>
+      <button class="btn btn-red btn-big" type="submit">Save Event</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>
