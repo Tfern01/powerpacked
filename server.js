@@ -182,6 +182,27 @@ app.get('/gallery', (req, res) => {
   res.render('gallery', { title: 'Members Corner — Powerpacked', members });
 });
 
+app.get('/about', (req, res) => {
+  res.render('about', { title: 'About — Powerpacked' });
+});
+
+app.get('/contact', (req, res) => {
+  res.render('contact', { title: 'Contact — Powerpacked', sent: false, error: null, values: {} });
+});
+
+app.post('/contact', (req, res) => {
+  const name = (req.body.name || '').trim().slice(0, 80);
+  const email = (req.body.email || '').trim().slice(0, 120);
+  const subject = (req.body.subject || '').trim().slice(0, 120);
+  const message = (req.body.message || '').trim().slice(0, 2000);
+  const values = { name, email, subject, message };
+  if (!name) return res.render('contact', { title: 'Contact — Powerpacked', sent: false, error: 'Please tell us your name.', values });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.render('contact', { title: 'Contact — Powerpacked', sent: false, error: 'Please enter a valid email address.', values });
+  if (!message) return res.render('contact', { title: 'Contact — Powerpacked', sent: false, error: 'Please write a message.', values });
+  db.prepare('INSERT INTO contact_messages (name, email, subject, message) VALUES (?, ?, ?, ?)').run(name, email, subject, message);
+  res.render('contact', { title: 'Contact — Powerpacked', sent: true, error: null, values: {} });
+});
+
 app.get('/shop', (req, res) => {
   const products = db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY created_at DESC').all();
   res.render('shop', { title: 'Shop — Powerpacked', products });
@@ -355,6 +376,7 @@ app.get('/admin', requireAdmin, (req, res) => {
     rides: db.prepare('SELECT COUNT(*) c FROM vehicles').get().c,
     upcomingEvents: db.prepare(`SELECT COUNT(*) c FROM events WHERE date(event_date) >= date('now')`).get().c,
     products: db.prepare('SELECT COUNT(*) c FROM products WHERE active = 1').get().c,
+    unreadMessages: db.prepare('SELECT COUNT(*) c FROM contact_messages WHERE read = 0').get().c,
   };
   res.render('admin', { title: 'Admin — Powerpacked', stats });
 });
@@ -368,6 +390,19 @@ const validateEvent = (b) => {
 app.get('/admin/events', requireAdmin, (req, res) => {
   const events = db.prepare('SELECT * FROM events ORDER BY event_date DESC').all();
   res.render('admin-events', { title: 'Manage Events — Powerpacked', events });
+});
+
+app.get('/admin/messages', requireAdmin, (req, res) => {
+  const messages = db.prepare('SELECT * FROM contact_messages ORDER BY created_at DESC').all();
+  res.render('admin-messages', { title: 'Contact Messages — Powerpacked', messages });
+});
+app.post('/admin/messages/:id/read', requireAdmin, (req, res) => {
+  db.prepare('UPDATE contact_messages SET read = 1 WHERE id = ?').run(req.params.id);
+  res.redirect('/admin/messages');
+});
+app.post('/admin/messages/:id/delete', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM contact_messages WHERE id = ?').run(req.params.id);
+  res.redirect('/admin/messages');
 });
 app.get('/admin/events/new', requireAdmin, (req, res) =>
   res.render('admin-event-form', { title: 'New Event — Powerpacked', error: null, event: {}, formAction: '/admin/events' }));

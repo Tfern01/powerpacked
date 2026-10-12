@@ -1,0 +1,36 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <p class="section-kicker">Inbox</p>
+    <h1 class="page-title">Contact Messages</h1>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <p style="margin-bottom:1.5rem"><a class="btn btn-outline" href="/admin">&larr; Back to Admin</a></p>
+    <% if (!messages.length) { %>
+      <div class="empty-box">
+        <p class="empty-title">No messages yet</p>
+        <p class="muted">Messages from the contact form will land here.</p>
+      </div>
+    <% } else { %>
+      <% messages.forEach(m => { %>
+        <article class="card" style="margin-bottom:1rem;<%= m.read ? '' : 'border-left:4px solid var(--red);' %>">
+          <div class="form-row" style="justify-content:space-between">
+            <h3 style="margin:0"><%= m.subject || '(no subject)' %></h3>
+            <span class="muted" style="font-size:0.9rem"><%= new Date(m.created_at + 'Z').toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) %></span>
+          </div>
+          <p class="muted">From <strong><%= m.name %></strong> &lt;<%= m.email %>&gt;</p>
+          <p style="white-space:pre-wrap"><%= m.message %></p>
+          <div class="form-row">
+            <% if (!m.read) { %>
+              <form action="/admin/messages/<%= m.id %>/read" method="POST"><button class="btn btn-outline" type="submit">Mark read</button></form>
+            <% } %>
+            <form action="/admin/messages/<%= m.id %>/delete" method="POST" onsubmit="return confirm('Delete this message?')"><button class="btn btn-outline" type="submit">Delete</button></form>
+          </div>
+        </article>
+      <% }) %>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

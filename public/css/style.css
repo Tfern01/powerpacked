@@ -301,6 +301,13 @@ label.check input { width: 1.3rem; height: 1.3rem; accent-color: var(--red); }
 .alert-error { background: #fbe3e3; border: 1px solid #e89a9a; color: #8c1d22; }
 .alert-good { background: #e6f4e3; border: 1px solid #9ccb92; color: #2c5b25; }
 
+/* ---------------- about ---------------- */
+.about-values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2rem; }
+.value { background: var(--dark-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.2rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.value strong { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.06em; color: var(--gold); }
+.value span { color: var(--muted); }
+@media (max-width: 700px) { .about-values { grid-template-columns: 1fr; } }
+
 /* ---------------- tables ---------------- */
 .table { width: 100%; border-collapse: collapse; background: var(--paper); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 .table th, .table td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--line); }

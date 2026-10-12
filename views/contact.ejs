@@ -1,0 +1,32 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <p class="section-kicker">Say hello</p>
+    <h1 class="page-title">Contact Us</h1>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap narrow">
+    <p class="muted">Questions about the club, events, or membership? Send us a message and we'll get back to you.</p>
+    <% if (sent) { %>
+      <div class="alert alert-good">Message sent. We'll be in touch soon.</div>
+    <% } %>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <form class="form" action="/contact" method="POST">
+      <label>Name
+        <input type="text" name="name" required maxlength="80" value="<%= values.name || '' %>" autocomplete="name">
+      </label>
+      <label>Email
+        <input type="email" name="email" required maxlength="120" value="<%= values.email || '' %>" autocomplete="email">
+      </label>
+      <label>Subject
+        <input type="text" name="subject" maxlength="120" value="<%= values.subject || '' %>">
+      </label>
+      <label>Message
+        <textarea name="message" required maxlength="2000" rows="6"><%= values.message || '' %></textarea>
+      </label>
+      <button class="btn btn-red btn-big" type="submit">Send Message</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>
