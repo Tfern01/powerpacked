@@ -1,0 +1,24 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <a class="back-link" href="/account">&larr; Back to My Account</a>
+    <h1 class="page-title">Edit Ride</h1>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <form class="form" action="/account/vehicles/<%= vehicle.id %>/edit" method="POST" enctype="multipart/form-data">
+      <label>Ride name / nickname *
+        <input type="text" name="name" required maxlength="80" value="<%= vehicle.name %>">
+      </label>
+      <div class="form-grid">
+        <label>Year <input type="text" name="year" maxlength="10" value="<%= vehicle.year || '' %>"></label>
+        <label>Make <input type="text" name="make" maxlength="60" value="<%= vehicle.make || '' %>"></label>
+        <label>Model <input type="text" name="model" maxlength="60" value="<%= vehicle.model || '' %>"></label>
+      </div>
+      <label>Photo (leave blank to keep current)
+        <input type="file" name="photo" accept="image/jpeg,image/png,image/gif,image/webp">
+      </label>
+      <% if (vehicle.photo) { %><img class="thumb" src="<%= vehicle.photo %>" alt="<%= vehicle.name %>"><% } %>
+      <button class="btn btn-red btn-big" type="submit">Save Changes</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>

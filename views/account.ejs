@@ -38,6 +38,7 @@
             <h3><%= v.name %> <% if (v.is_primary) { %><span class="pill">Primary</span><% } %></h3>
             <p class="muted"><%= [v.year, v.make, v.model].filter(Boolean).join(' ') %></p>
             <div class="card-actions">
+              <a class="btn btn-outline btn-sm" href="/account/vehicles/<%= v.id %>/edit">Edit</a>
               <% if (!v.is_primary) { %>
                 <form action="/account/vehicles/<%= v.id %>/primary" method="POST"><button class="btn btn-outline btn-sm" type="submit">Set as primary</button></form>
               <% } %>
@@ -60,7 +61,7 @@
         <label>Make <input type="text" name="make" maxlength="60" placeholder="e.g. Chevrolet"></label>
         <label>Model <input type="text" name="model" maxlength="60" placeholder="e.g. Chevelle"></label>
       </div>
-      <label>Photo
+      <label>Photo <span class="muted" style="font-weight:400">(jpg, png, gif, or webp, up to 15MB)</span>
         <input type="file" name="photo" accept="image/jpeg,image/png,image/gif,image/webp">
       </label>
       <button class="btn btn-red" type="submit">Add Ride</button>

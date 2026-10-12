@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (/^image\/(jpeg|png|gif|webp)$/.test(file.mimetype)) cb(null, true);
     else cb(new Error('Only image uploads are allowed (jpg, png, gif, webp).'));
@@ -311,7 +311,7 @@ app.get('/account', requireLogin, (req, res) => {
     title: 'My Account — Powerpacked',
     user, vehicles,
     welcome: req.query.welcome === '1',
-    error: null, notice: req.query.notice || null,
+    error: req.query.error || null, notice: req.query.notice || null,
   });
 });
 
@@ -349,8 +349,29 @@ app.post('/account/vehicles', requireLogin, upload.single('photo'), (req, res) =
   res.redirect('/account?notice=' + encodeURIComponent('Ride added to your garage.'));
 });
 
-app.post('/account/vehicles/:id/primary', requireLogin, (req, res) => {
-  const v = db.prepare('SELECT id FROM vehicles WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
+app.get('/account/vehicles/:id/edit', requireLogin, (req, res) => {
+  const vehicle = db.prepare('SELECT * FROM vehicles WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
+  if (!vehicle) return res.status(404).render('404', { title: 'Not found' });
+  res.render('vehicle-form', { title: 'Edit Ride — Powerpacked', vehicle, error: req.query.error || null });
+});
+
+app.post('/account/vehicles/:id/edit', requireLogin, upload.single('photo'), (req, res) => {
+  const vehicle = db.prepare('SELECT * FROM vehicles WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
+  if (!vehicle) return res.status(404).render('404', { title: 'Not found' });
+  const name = (req.body.name || '').trim();
+  if (!name) return res.render('vehicle-form', { title: 'Edit Ride — Powerpacked', vehicle: { ...vehicle, ...req.body }, error: 'Give your ride a name.' });
+  let photo = vehicle.photo;
+  if (req.file) {
+    if (vehicle.photo) fs.unlink(path.join(uploadDir, path.basename(vehicle.photo)), () => {});
+    photo = '/uploads/' + req.file.filename;
+  }
+  db.prepare('UPDATE vehicles SET name = ?, make = ?, model = ?, year = ?, photo = ? WHERE id = ?')
+    .run(name.slice(0, 80), (req.body.make || '').trim().slice(0, 60), (req.body.model || '').trim().slice(0, 60),
+      (req.body.year || '').trim().slice(0, 10), photo, vehicle.id);
+  res.redirect('/account?notice=' + encodeURIComponent('Ride updated.'));
+});
+
+app.post('/account/vehicles/:id/primary', requireLogin, (req, res) => {  const v = db.prepare('SELECT id FROM vehicles WHERE id = ? AND user_id = ?').get(req.params.id, req.session.userId);
   if (!v) return res.status(404).render('404', { title: 'Not found' });
   const tx = db.transaction(() => {
     db.prepare('UPDATE vehicles SET is_primary = 0 WHERE user_id = ?').run(req.session.userId);
@@ -405,7 +426,7 @@ app.post('/admin/messages/:id/delete', requireAdmin, (req, res) => {
   res.redirect('/admin/messages');
 });
 app.get('/admin/events/new', requireAdmin, (req, res) =>
-  res.render('admin-event-form', { title: 'New Event — Powerpacked', error: null, event: {}, formAction: '/admin/events' }));
+  res.render('admin-event-form', { title: 'New Event — Powerpacked', error: req.query.error || null, event: {}, formAction: '/admin/events' }));
 app.post('/admin/events', requireAdmin, upload.single('image'), (req, res) => {
   const err = validateEvent(req.body);
   if (err) return res.render('admin-event-form', { title: 'New Event — Powerpacked', error: err, event: req.body, formAction: '/admin/events' });
@@ -418,7 +439,7 @@ app.post('/admin/events', requireAdmin, upload.single('image'), (req, res) => {
 app.get('/admin/events/:id/edit', requireAdmin, (req, res) => {
   const event = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
   if (!event) return res.status(404).render('404', { title: 'Not found' });
-  res.render('admin-event-form', { title: 'Edit Event — Powerpacked', error: null, event, formAction: '/admin/events/' + event.id });
+  res.render('admin-event-form', { title: 'Edit Event — Powerpacked', error: req.query.error || null, event, formAction: '/admin/events/' + event.id });
 });
 app.post('/admin/events/:id', requireAdmin, upload.single('image'), (req, res) => {
   const event = db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id);
@@ -450,7 +471,7 @@ app.get('/admin/products', requireAdmin, (req, res) => {
   res.render('admin-products', { title: 'Manage Products — Powerpacked', products });
 });
 app.get('/admin/products/new', requireAdmin, (req, res) =>
-  res.render('admin-product-form', { title: 'New Product — Powerpacked', error: null, product: { active: 1 }, formAction: '/admin/products' }));
+  res.render('admin-product-form', { title: 'New Product — Powerpacked', error: req.query.error || null, product: { active: 1 }, formAction: '/admin/products' }));
 app.post('/admin/products', requireAdmin, upload.single('image'), (req, res) => {
   if (!(req.body.name || '').trim()) {
     return res.render('admin-product-form', { title: 'New Product — Powerpacked', error: 'Name is required.', product: req.body, formAction: '/admin/products' });
@@ -464,7 +485,7 @@ app.post('/admin/products', requireAdmin, upload.single('image'), (req, res) => 
 app.get('/admin/products/:id/edit', requireAdmin, (req, res) => {
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
   if (!product) return res.status(404).render('404', { title: 'Not found' });
-  res.render('admin-product-form', { title: 'Edit Product — Powerpacked', error: null, product, formAction: '/admin/products/' + product.id });
+  res.render('admin-product-form', { title: 'Edit Product — Powerpacked', error: req.query.error || null, product, formAction: '/admin/products/' + product.id });
 });
 app.post('/admin/products/:id', requireAdmin, upload.single('image'), (req, res) => {
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
@@ -496,6 +517,14 @@ app.post('/admin/products/:id/delete', requireAdmin, (req, res) => {
 app.use((req, res) => res.status(404).render('404', { title: 'Not found' }));
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  const isUploadError = err instanceof multer.MulterError || /Only image uploads/.test(err.message || '');
+  if (isUploadError) {
+    const back = (req.get('Referer') || '/account').split('?')[0];
+    const msg = err.code === 'LIMIT_FILE_SIZE'
+      ? 'That photo is too large — please keep uploads under 15MB.'
+      : (err.message || 'Upload failed. Please try a jpg, png, gif, or webp image.');
+    return res.redirect(back + '?error=' + encodeURIComponent(msg));
+  }
   console.error(err);
   res.status(500).render('500', { title: 'Something broke', message: err.message });
 });
