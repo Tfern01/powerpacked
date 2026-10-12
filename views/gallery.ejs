@@ -3,7 +3,7 @@
   <div class="wrap">
     <p class="section-kicker">The clubhouse wall</p>
     <h1 class="page-title">Members Corner</h1>
-    <p class="muted">Every member's chosen ride, in one place. Click any photo to visit their profile.</p>
+    <p class="muted">Every member's chosen ride, in one place. Click any photo to like and comment.</p>
   </div>
 </section>
 <section class="section">
@@ -11,10 +11,26 @@
     <% if (members.filter(m => m.display_photo).length) { %>
       <div class="photo-wall">
         <% members.filter(m => m.display_photo).forEach(m => { %>
-          <a class="wall-item" href="/member/<%= encodeURIComponent(m.username) %>">
-            <img src="<%= m.display_photo %>" alt="<%= m.ride_name || m.username %>'s ride" loading="lazy">
+          <div class="wall-item">
+            <% if (m.vehicle_id) { %>
+              <a class="wall-link" href="/vehicles/<%= m.vehicle_id %>">
+                <img src="<%= m.display_photo %>" alt="<%= m.ride_name || m.username %>'s ride" loading="lazy">
+              </a>
+            <% } else { %>
+              <a class="wall-link" href="/member/<%= encodeURIComponent(m.username) %>">
+                <img src="<%= m.display_photo %>" alt="<%= m.username %>'s photo" loading="lazy">
+              </a>
+            <% } %>
             <div class="wall-caption"><strong><%= m.username %></strong><span><%= m.member_number %></span></div>
-          </a>
+            <% if (m.vehicle_id) { %>
+              <form class="wall-like" action="/vehicles/<%= m.vehicle_id %>/like" method="POST">
+                <button type="submit" class="like-btn<%= m.liked ? ' liked' : '' %>" aria-label="<%= m.liked ? 'Unlike' : 'Like' %> this ride">
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  <span><%= m.like_count %></span>
+                </button>
+              </form>
+            <% } %>
+          </div>
         <% }) %>
       </div>
     <% } else { %>

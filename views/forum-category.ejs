@@ -1,0 +1,44 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <a class="back-link back-link-light" href="/forum">&larr; Forum</a>
+    <h1 class="page-title"><%= category.name %></h1>
+    <p class="muted-light"><%= category.description %></p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 class="section-title">Threads</h2>
+      <% if (currentUser) { %>
+        <a class="btn btn-red" href="/forum/c/<%= category.slug %>/new">Start a Thread</a>
+      <% } else { %>
+        <a class="btn btn-outline" href="/login?next=<%= encodeURIComponent('/forum/c/' + category.slug + '/new') %>">Log in to Post</a>
+      <% } %>
+    </div>
+    <% if (threads.length) { %>
+      <div class="thread-list">
+        <% threads.forEach(t => { %>
+          <a class="thread-row" href="/forum/t/<%= t.id %>">
+            <div class="thread-main">
+              <h3><% if (t.locked) { %><span class="pill pill-locked">Locked</span> <% } %><%= t.title %></h3>
+              <p class="muted">by <%= t.username %></p>
+            </div>
+            <div class="thread-stats">
+              <span><strong><%= t.reply_count %></strong> <%= t.reply_count === 1 ? 'post' : 'posts' %></span>
+              <% if (t.latest_at) { %>
+                <span class="muted">latest by <%= t.latest_by %> &middot; <%= new Date(t.latest_at + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %></span>
+              <% } %>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-box">
+        <p class="empty-title">No threads yet</p>
+        <p class="muted">Be the first to start a conversation in <%= category.name %>.</p>
+      </div>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

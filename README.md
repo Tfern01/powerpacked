@@ -18,7 +18,13 @@ side-by-side, EV — into one community.
   a profile page, a profile picture, and a garage where they can add vehicle
   photos and pick one primary photo.
 - **Members Corner** — gallery wall of every member's chosen primary photo;
-  clicking a photo opens that member's profile.
+  clicking a photo opens that ride's detail page.
+- **Likes & comments** — members can like any ride (heart on gallery cards,
+  profiles, and ride pages) and comment on ride detail pages (`/vehicles/:id`).
+  Members can delete their own comments; admins can delete any.
+- **Forum** (`/forum`) — categories (General Discussion, Builds & Projects,
+  Events & Meets, Tech Talk), threads, and replies. Members can start threads
+  and reply; admins can lock/unlock and delete threads and posts.
 - **Shop** — full storefront structure; shows an attractive "coming soon"
   empty state until products are added.
 - **Search** — header search across members, rides, and events.

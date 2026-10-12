@@ -241,7 +241,7 @@ a.card { transition: transform 0.15s ease, border-color 0.15s ease; }
 .photo-wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
 .wall-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; background: var(--dark-2); display: block; }
 .wall-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.25s ease; }
-a.wall-item:hover img { transform: scale(1.05); }
+.wall-item:hover .wall-link img { transform: scale(1.05); }
 .wall-caption {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 1.6rem 0.9rem 0.7rem;
   background: linear-gradient(transparent, rgba(10,8,6,0.88)); color: var(--cream);
@@ -336,4 +336,86 @@ label.check input { width: 1.3rem; height: 1.3rem; accent-color: var(--red); }
   .carousel-track { aspect-ratio: 4/3; }
   .table-actions { flex-direction: column; }
   .section-head { align-items: flex-start; flex-direction: column; }
+}
+
+/* ---------------- likes ---------------- */
+.like-btn {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: rgba(10, 8, 6, 0.55); color: var(--cream);
+  border: 2px solid rgba(250, 247, 236, 0.35); border-radius: 999px;
+  padding: 0.35rem 0.8rem; cursor: pointer;
+  font-family: var(--font-body); font-size: 0.9rem; font-weight: 700;
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  backdrop-filter: blur(2px);
+}
+.like-btn svg { fill: none; stroke: currentColor; stroke-width: 2; }
+.like-btn:hover { transform: translateY(-2px); border-color: var(--red); }
+.like-btn.liked { background: var(--red); border-color: var(--red); color: #fff; }
+.like-btn.liked svg { fill: #fff; stroke: #fff; }
+.like-btn-lg { font-size: 1.1rem; padding: 0.6rem 1.3rem; }
+.like-form { display: inline; }
+.wall-link { display: block; width: 100%; height: 100%; }
+.wall-like { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 2; }
+.like-count-line { display: flex; align-items: center; gap: 0.35rem; font-size: 0.9rem; margin: 0.2rem 0 0; }
+.heart-inline { fill: var(--red); flex: none; }
+.like-count-line a { font-weight: 600; }
+
+/* ---------------- vehicle detail ---------------- */
+.vehicle-hero { width: 100%; border-radius: 10px; aspect-ratio: 16/10; object-fit: cover; margin-bottom: 1.4rem; box-shadow: var(--shadow); }
+.vehicle-meta { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem; }
+.owner-chip { display: inline-flex; align-items: center; gap: 0.7rem; text-decoration: none; color: inherit; }
+.owner-chip img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--red); }
+.owner-chip > span { display: flex; flex-direction: column; line-height: 1.25; }
+.back-link-light { color: var(--cream); }
+.muted-light { color: #cfc2a8; }
+
+/* ---------------- comments ---------------- */
+.comments { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.8rem; }
+.comment { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.2rem; }
+.comment-head { display: flex; align-items: baseline; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 0.4rem; font-size: 0.95rem; }
+.comment-head a { text-decoration: none; color: inherit; }
+.comment-body { margin: 0; white-space: pre-wrap; word-break: break-word; }
+.comment-delete { margin-left: auto; }
+.link-danger { background: none; border: none; padding: 0; color: #a33; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: underline; }
+.link-danger:hover { color: var(--red); }
+.comment-form { margin-top: 0.5rem; }
+
+/* ---------------- forum ---------------- */
+.forum-list { display: flex; flex-direction: column; gap: 1rem; }
+.forum-cat {
+  display: grid; grid-template-columns: 1fr auto; gap: 0.4rem 1.4rem;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  padding: 1.2rem 1.4rem; text-decoration: none; color: inherit;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.forum-cat:hover { transform: translateY(-2px); border-color: var(--red); }
+.forum-cat-main h2 { font-family: var(--font-display); font-size: 1.7rem; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 0.2rem; }
+.forum-cat-main p { margin: 0; }
+.forum-cat-stats { display: flex; gap: 1.2rem; align-items: center; font-size: 0.95rem; white-space: nowrap; }
+.forum-cat-latest { grid-column: 1 / -1; font-size: 0.9rem; border-top: 1px dashed var(--line); padding-top: 0.6rem; }
+.thread-list { display: flex; flex-direction: column; gap: 0.8rem; }
+.thread-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  padding: 1rem 1.3rem; text-decoration: none; color: inherit;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.thread-row:hover { transform: translateY(-2px); border-color: var(--red); }
+.thread-main h3 { font-family: var(--font-display); font-size: 1.4rem; letter-spacing: 0.05em; margin: 0 0 0.15rem; font-weight: 500; }
+.thread-main p { margin: 0; font-size: 0.9rem; }
+.thread-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; font-size: 0.9rem; text-align: right; }
+.pill-locked { background: var(--ink); color: var(--cream); font-size: 0.7rem; padding: 0.15rem 0.6rem; vertical-align: middle; }
+.posts { display: flex; flex-direction: column; gap: 1.2rem; margin-bottom: 2rem; }
+.post { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 1.2rem 1.4rem; }
+.post-head { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.7rem; padding-bottom: 0.7rem; border-bottom: 1px solid var(--line); }
+.post-date { margin-left: auto; font-size: 0.85rem; }
+.post .comment-delete { margin-left: 0; }
+.post-body { margin: 0; white-space: pre-wrap; word-break: break-word; line-height: 1.65; }
+.admin-bar { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 0.9rem 1.1rem; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; }
+.admin-bar form { display: inline; }
+
+@media (max-width: 640px) {
+  .forum-cat { grid-template-columns: 1fr; }
+  .thread-stats { align-items: flex-start; text-align: left; }
+  .vehicle-meta { align-items: flex-start; flex-direction: column; }
 }

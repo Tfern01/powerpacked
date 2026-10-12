@@ -1,0 +1,66 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <a class="back-link back-link-light" href="/gallery">&larr; Members Corner</a>
+    <h1 class="page-title"><%= vehicle.name %></h1>
+    <p class="muted-light"><%= [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') %></p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap narrow">
+    <% if (vehicle.photo) { %>
+      <img class="vehicle-hero" src="<%= vehicle.photo %>" alt="<%= vehicle.name %>">
+    <% } %>
+    <div class="vehicle-meta">
+      <a class="owner-chip" href="/member/<%= encodeURIComponent(vehicle.username) %>">
+        <% if (vehicle.profile_pic) { %>
+          <img src="<%= vehicle.profile_pic %>" alt="<%= vehicle.username %>">
+        <% } else { %>
+          <span class="avatar-fallback avatar-sm"><%= vehicle.username.charAt(0).toUpperCase() %></span>
+        <% } %>
+        <span><strong><%= vehicle.username %></strong><span class="muted"><%= vehicle.member_number %></span></span>
+      </a>
+      <form class="like-form" action="/vehicles/<%= vehicle.id %>/like" method="POST">
+        <button type="submit" class="like-btn like-btn-lg<%= vehicle.liked ? ' liked' : '' %>" aria-label="<%= vehicle.liked ? 'Unlike this ride' : 'Like this ride' %>">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          <span><%= vehicle.like_count %></span>
+        </button>
+      </form>
+    </div>
+
+    <h2 class="section-title" id="comments">Comments <span class="muted">(<%= comments.length %>)</span></h2>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <% if (comments.length) { %>
+      <div class="comments">
+        <% comments.forEach(c => { %>
+          <article class="comment">
+            <div class="comment-head">
+              <a href="/member/<%= encodeURIComponent(c.username) %>"><strong><%= c.username %></strong></a>
+              <span class="muted"><%= c.member_number %> &middot; <%= new Date(c.created_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></span>
+              <% if (currentUser && (currentUser.id === c.user_id || currentUser.is_admin)) { %>
+                <form action="/comments/<%= c.id %>/delete" method="POST" class="comment-delete" onsubmit="return confirm('Delete this comment?');">
+                  <button type="submit" class="link-danger">Delete</button>
+                </form>
+              <% } %>
+            </div>
+            <p class="comment-body"><%= c.body %></p>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="empty-box"><p class="muted">No comments yet. Say something nice about this ride.</p></div>
+    <% } %>
+
+    <% if (currentUser) { %>
+      <form class="form comment-form" action="/vehicles/<%= vehicle.id %>/comments" method="POST">
+        <label>Leave a comment
+          <textarea name="body" rows="3" maxlength="500" placeholder="What do you love about this ride?" required></textarea>
+        </label>
+        <button class="btn btn-red" type="submit">Post Comment</button>
+      </form>
+    <% } else { %>
+      <p class="muted"><a href="/login?next=<%= encodeURIComponent('/vehicles/' + vehicle.id) %>">Log in</a> to like and comment.</p>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

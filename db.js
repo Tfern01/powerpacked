@@ -73,6 +73,47 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   read INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS likes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, vehicle_id)
+);
+
+CREATE TABLE IF NOT EXISTS comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS forum_categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT DEFAULT '',
+  position INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS forum_threads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category_id INTEGER NOT NULL REFERENCES forum_categories(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  locked INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS forum_posts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  thread_id INTEGER NOT NULL REFERENCES forum_threads(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 const getMeta = db.prepare('SELECT value FROM meta WHERE key = ?');
@@ -83,6 +124,21 @@ const setMeta = db.prepare(
 if (!getMeta.get('member_seq')) {
   setMeta.run('member_seq', '0');
 }
+
+/** Seed the forum categories on first run. */
+function seedForumCategories() {
+  const count = db.prepare('SELECT COUNT(*) c FROM forum_categories').get().c;
+  if (count) return;
+  const insert = db.prepare(
+    'INSERT INTO forum_categories (name, slug, description, position) VALUES (?, ?, ?, ?)'
+  );
+  insert.run('General Discussion', 'general', 'Club news, introductions, and anything car culture.', 1);
+  insert.run('Builds & Projects', 'builds-projects', 'Show off your build, share progress, ask for advice.', 2);
+  insert.run('Events & Meets', 'events-meets', 'Plan cruises and meets, talk about upcoming shows.', 3);
+  insert.run('Tech Talk', 'tech-talk', 'Wrenching, tuning, detailing, and how-tos.', 4);
+  console.log('Seeded forum categories.');
+}
+seedForumCategories();
 
 /** Assign the next sequential member number (PWR-001, PWR-002, ...) atomically. */
 const nextMemberNumber = db.transaction(() => {

@@ -1,0 +1,63 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <a class="back-link back-link-light" href="/forum/c/<%= thread.category_slug %>">&larr; <%= thread.category_name %></a>
+    <p class="section-kicker">Thread by <%= thread.username %></p>
+    <h1 class="page-title"><%= thread.title %></h1>
+    <% if (thread.locked) { %><p><span class="pill pill-locked">Locked</span></p><% } %>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap narrow">
+    <% if (currentUser && currentUser.is_admin) { %>
+      <div class="admin-bar">
+        <form action="/admin/forum/threads/<%= thread.id %>/lock" method="POST">
+          <button class="btn btn-outline btn-sm" type="submit"><%= thread.locked ? 'Unlock Thread' : 'Lock Thread' %></button>
+        </form>
+        <form action="/admin/forum/threads/<%= thread.id %>/delete" method="POST" onsubmit="return confirm('Delete this entire thread and all its posts?');">
+          <button class="btn btn-outline btn-sm btn-danger" type="submit">Delete Thread</button>
+        </form>
+      </div>
+    <% } %>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <div class="posts">
+      <% posts.forEach((p, i) => { %>
+        <article class="post" id="<%= i === posts.length - 1 ? 'latest' : '' %>">
+          <div class="post-head">
+            <a class="owner-chip" href="/member/<%= encodeURIComponent(p.username) %>">
+              <% if (p.profile_pic) { %>
+                <img src="<%= p.profile_pic %>" alt="<%= p.username %>">
+              <% } else { %>
+                <span class="avatar-fallback avatar-sm"><%= p.username.charAt(0).toUpperCase() %></span>
+              <% } %>
+              <span><strong><%= p.username %></strong><span class="muted"><%= p.member_number %></span></span>
+            </a>
+            <span class="muted post-date"><%= new Date(p.created_at + 'Z').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></span>
+            <% if (currentUser && currentUser.is_admin) { %>
+              <form action="/admin/forum/posts/<%= p.id %>/delete" method="POST" class="comment-delete" onsubmit="return confirm('Delete this post?');">
+                <button type="submit" class="link-danger">Delete</button>
+              </form>
+            <% } %>
+          </div>
+          <p class="post-body"><%= p.body %></p>
+        </article>
+      <% }) %>
+    </div>
+
+    <% if (currentUser) { %>
+      <% if (thread.locked && !currentUser.is_admin) { %>
+        <div class="empty-box"><p class="muted">This thread is locked. No new replies.</p></div>
+      <% } else { %>
+        <form class="form comment-form" action="/forum/t/<%= thread.id %>/reply" method="POST">
+          <label>Reply as <%= currentUser.username %>
+            <textarea name="body" rows="4" maxlength="5000" placeholder="Add to the conversation..." required></textarea>
+          </label>
+          <button class="btn btn-red" type="submit">Post Reply</button>
+        </form>
+      <% } %>
+    <% } else { %>
+      <p class="muted"><a href="/login?next=<%= encodeURIComponent('/forum/t/' + thread.id) %>">Log in</a> to join the conversation.</p>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

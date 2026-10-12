@@ -131,6 +131,34 @@ const requireAdmin = (req, res, next) => {
 const esc = (s) => String(s ?? '');
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
+/** Attach like_count and liked (for the current user) to vehicle row objects. */
+const withLikes = (vehicles, userId) => {
+  if (!vehicles.length) return vehicles;
+  const ids = vehicles.map((v) => v.id);
+  const placeholders = ids.map(() => '?').join(',');
+  const counts = db
+    .prepare(`SELECT vehicle_id, COUNT(*) c FROM likes WHERE vehicle_id IN (${placeholders}) GROUP BY vehicle_id`)
+    .all(...ids);
+  const countMap = Object.fromEntries(counts.map((r) => [r.vehicle_id, r.c]));
+  let likedSet = new Set();
+  if (userId) {
+    const liked = db
+      .prepare(`SELECT vehicle_id FROM likes WHERE user_id = ? AND vehicle_id IN (${placeholders})`)
+      .all(userId, ...ids);
+    likedSet = new Set(liked.map((r) => r.vehicle_id));
+  }
+  return vehicles.map((v) => ({ ...v, like_count: countMap[v.id] || 0, liked: likedSet.has(v.id) }));
+};
+
+/** Redirect target for like toggles: back to the referring page when it's ours. */
+const safeBack = (req, fallback) => {
+  try {
+    const u = new URL(req.get('Referer') || '');
+    if (u.pathname.startsWith('/')) return u.pathname + u.search;
+  } catch { /* ignore */ }
+  return fallback;
+};
+
 /* ---------------- public pages ---------------- */
 
 app.get('/', (req, res) => {
@@ -172,6 +200,7 @@ app.get('/gallery', (req, res) => {
   const members = db
     .prepare(`
       SELECT u.id, u.username, u.member_number, u.profile_pic,
+             (SELECT v.id FROM vehicles v WHERE v.user_id = u.id AND v.is_primary = 1 AND v.photo IS NOT NULL LIMIT 1) AS vehicle_id,
              (SELECT v.photo FROM vehicles v WHERE v.user_id = u.id AND v.is_primary = 1 AND v.photo IS NOT NULL LIMIT 1) AS primary_photo,
              (SELECT v.name  FROM vehicles v WHERE v.user_id = u.id AND v.is_primary = 1 LIMIT 1) AS ride_name
       FROM users u
@@ -179,6 +208,15 @@ app.get('/gallery', (req, res) => {
       ORDER BY u.created_at DESC`)
     .all()
     .map((m) => ({ ...m, display_photo: m.primary_photo || m.profile_pic }));
+  const withVehicle = members.filter((m) => m.vehicle_id);
+  const likeMap = new Map(
+    withLikes(withVehicle.map((m) => ({ id: m.vehicle_id })), req.session.userId).map((v) => [v.id, v])
+  );
+  members.forEach((m) => {
+    const info = m.vehicle_id ? likeMap.get(m.vehicle_id) : null;
+    m.like_count = info ? info.like_count : 0;
+    m.liked = info ? info.liked : false;
+  });
   res.render('gallery', { title: 'Members Corner — Powerpacked', members });
 });
 
@@ -298,15 +336,189 @@ app.get('/member/:username', (req, res) => {
     .prepare('SELECT id, username, member_number, profile_pic, bio, created_at FROM users WHERE username = ? AND is_admin = 0')
     .get(req.params.username);
   if (!user) return res.status(404).render('404', { title: 'Not found' });
-  const vehicles = db.prepare('SELECT * FROM vehicles WHERE user_id = ? ORDER BY is_primary DESC, created_at DESC').all(user.id);
+  const vehicles = withLikes(
+    db.prepare('SELECT * FROM vehicles WHERE user_id = ? ORDER BY is_primary DESC, created_at DESC').all(user.id),
+    req.session.userId
+  );
   res.render('member', { title: user.username + ' — Powerpacked', member: user, vehicles });
+});
+
+/* ---------------- vehicle detail, likes & comments ---------------- */
+
+app.get('/vehicles/:id', (req, res) => {
+  const vehicle = db
+    .prepare(`SELECT v.*, u.username, u.member_number, u.profile_pic
+              FROM vehicles v JOIN users u ON u.id = v.user_id
+              WHERE v.id = ?`)
+    .get(req.params.id);
+  if (!vehicle) return res.status(404).render('404', { title: 'Not found' });
+  const [enriched] = withLikes([vehicle], req.session.userId);
+  const comments = db
+    .prepare(`SELECT c.*, u.username, u.member_number
+              FROM comments c JOIN users u ON u.id = c.user_id
+              WHERE c.vehicle_id = ? ORDER BY c.created_at ASC`)
+    .all(vehicle.id);
+  res.render('vehicle', {
+    title: vehicle.name + ' — Powerpacked',
+    vehicle: enriched, comments,
+    error: req.query.error || null,
+  });
+});
+
+app.post('/vehicles/:id/like', requireLogin, (req, res) => {
+  const v = db.prepare('SELECT id FROM vehicles WHERE id = ?').get(req.params.id);
+  if (!v) return res.status(404).render('404', { title: 'Not found' });
+  const existing = db.prepare('SELECT id FROM likes WHERE user_id = ? AND vehicle_id = ?').get(req.session.userId, v.id);
+  if (existing) db.prepare('DELETE FROM likes WHERE id = ?').run(existing.id);
+  else db.prepare('INSERT INTO likes (user_id, vehicle_id) VALUES (?, ?)').run(req.session.userId, v.id);
+  res.redirect(safeBack(req, '/gallery'));
+});
+
+app.post('/vehicles/:id/comments', requireLogin, (req, res) => {
+  const v = db.prepare('SELECT id FROM vehicles WHERE id = ?').get(req.params.id);
+  if (!v) return res.status(404).render('404', { title: 'Not found' });
+  const body = (req.body.body || '').trim().slice(0, 500);
+  if (!body) return res.redirect('/vehicles/' + v.id + '?error=' + encodeURIComponent('Write something first.'));
+  db.prepare('INSERT INTO comments (user_id, vehicle_id, body) VALUES (?, ?, ?)').run(req.session.userId, v.id, body);
+  res.redirect('/vehicles/' + v.id + '#comments');
+});
+
+app.post('/comments/:id/delete', requireLogin, (req, res) => {
+  const c = db.prepare('SELECT * FROM comments WHERE id = ?').get(req.params.id);
+  if (!c) return res.status(404).render('404', { title: 'Not found' });
+  const me = res.locals.currentUser;
+  if (c.user_id !== me.id && !me.is_admin) return res.status(403).render('403', { title: 'Not allowed' });
+  db.prepare('DELETE FROM comments WHERE id = ?').run(c.id);
+  res.redirect('/vehicles/' + c.vehicle_id + '#comments');
+});
+
+/* ---------------- forum ---------------- */
+
+app.get('/forum', (req, res) => {
+  const categories = db.prepare('SELECT * FROM forum_categories ORDER BY position').all();
+  const threadCount = db.prepare('SELECT COUNT(*) c FROM forum_threads WHERE category_id = ?');
+  const postCount = db.prepare('SELECT COUNT(*) c FROM forum_posts p JOIN forum_threads t ON t.id = p.thread_id WHERE t.category_id = ?');
+  const latest = db.prepare(`
+    SELECT t.id AS thread_id, t.title, p.created_at, u.username
+    FROM forum_posts p
+    JOIN forum_threads t ON t.id = p.thread_id
+    JOIN users u ON u.id = p.user_id
+    WHERE t.category_id = ? ORDER BY p.created_at DESC LIMIT 1`);
+  categories.forEach((c) => {
+    c.thread_count = threadCount.get(c.id).c;
+    c.post_count = postCount.get(c.id).c;
+    c.latest = latest.get(c.id) || null;
+  });
+  res.render('forum', { title: 'Forum — Powerpacked', categories });
+});
+
+app.get('/forum/c/:slug', (req, res) => {
+  const category = db.prepare('SELECT * FROM forum_categories WHERE slug = ?').get(req.params.slug);
+  if (!category) return res.status(404).render('404', { title: 'Not found' });
+  const threads = db.prepare(`
+    SELECT t.*, u.username,
+      (SELECT COUNT(*) FROM forum_posts p WHERE p.thread_id = t.id) AS reply_count,
+      (SELECT p.created_at FROM forum_posts p WHERE p.thread_id = t.id ORDER BY p.created_at DESC LIMIT 1) AS latest_at,
+      (SELECT u2.username FROM forum_posts p JOIN users u2 ON u2.id = p.user_id WHERE p.thread_id = t.id ORDER BY p.created_at DESC LIMIT 1) AS latest_by
+    FROM forum_threads t JOIN users u ON u.id = t.user_id
+    WHERE t.category_id = ?
+    ORDER BY t.created_at DESC`).all(category.id);
+  res.render('forum-category', { title: category.name + ' — Forum', category, threads });
+});
+
+app.get('/forum/c/:slug/new', requireLogin, (req, res) => {
+  const category = db.prepare('SELECT * FROM forum_categories WHERE slug = ?').get(req.params.slug);
+  if (!category) return res.status(404).render('404', { title: 'Not found' });
+  res.render('forum-new-thread', { title: 'New Thread — Powerpacked', category, error: null, values: {} });
+});
+
+app.post('/forum/c/:slug/new', requireLogin, (req, res) => {
+  const category = db.prepare('SELECT * FROM forum_categories WHERE slug = ?').get(req.params.slug);
+  if (!category) return res.status(404).render('404', { title: 'Not found' });
+  const title = (req.body.title || '').trim().slice(0, 120);
+  const body = (req.body.body || '').trim().slice(0, 5000);
+  const values = { title, body };
+  if (!title || !body) {
+    return res.render('forum-new-thread', {
+      title: 'New Thread — Powerpacked', category,
+      error: 'Give your thread a title and an opening post.', values,
+    });
+  }
+  const createThread = db.transaction(() => {
+    const t = db.prepare('INSERT INTO forum_threads (category_id, user_id, title) VALUES (?, ?, ?)')
+      .run(category.id, req.session.userId, title);
+    db.prepare('INSERT INTO forum_posts (thread_id, user_id, body) VALUES (?, ?, ?)')
+      .run(t.lastInsertRowid, req.session.userId, body);
+    return t.lastInsertRowid;
+  });
+  res.redirect('/forum/t/' + createThread());
+});
+
+app.get('/forum/t/:id', (req, res) => {
+  const thread = db.prepare(`
+    SELECT t.*, c.name AS category_name, c.slug AS category_slug, u.username
+    FROM forum_threads t
+    JOIN forum_categories c ON c.id = t.category_id
+    JOIN users u ON u.id = t.user_id
+    WHERE t.id = ?`).get(req.params.id);
+  if (!thread) return res.status(404).render('404', { title: 'Not found' });
+  const posts = db.prepare(`
+    SELECT p.*, u.username, u.member_number, u.profile_pic
+    FROM forum_posts p JOIN users u ON u.id = p.user_id
+    WHERE p.thread_id = ? ORDER BY p.created_at ASC`).all(thread.id);
+  res.render('forum-thread', {
+    title: thread.title + ' — Forum',
+    thread, posts,
+    error: req.query.error || null,
+  });
+});
+
+app.post('/forum/t/:id/reply', requireLogin, (req, res) => {
+  const thread = db.prepare('SELECT * FROM forum_threads WHERE id = ?').get(req.params.id);
+  if (!thread) return res.status(404).render('404', { title: 'Not found' });
+  if (thread.locked && !res.locals.currentUser.is_admin) {
+    return res.redirect('/forum/t/' + thread.id + '?error=' + encodeURIComponent('This thread is locked.'));
+  }
+  const body = (req.body.body || '').trim().slice(0, 5000);
+  if (!body) return res.redirect('/forum/t/' + thread.id + '?error=' + encodeURIComponent('Write something first.'));
+  db.prepare('INSERT INTO forum_posts (thread_id, user_id, body) VALUES (?, ?, ?)').run(thread.id, req.session.userId, body);
+  res.redirect('/forum/t/' + thread.id + '#latest');
+});
+
+app.post('/admin/forum/threads/:id/lock', requireAdmin, (req, res) => {
+  const t = db.prepare('SELECT * FROM forum_threads WHERE id = ?').get(req.params.id);
+  if (!t) return res.status(404).render('404', { title: 'Not found' });
+  db.prepare('UPDATE forum_threads SET locked = ? WHERE id = ?').run(t.locked ? 0 : 1, t.id);
+  res.redirect('/forum/t/' + t.id);
+});
+
+app.post('/admin/forum/threads/:id/delete', requireAdmin, (req, res) => {
+  const t = db.prepare('SELECT c.slug FROM forum_threads t JOIN forum_categories c ON c.id = t.category_id WHERE t.id = ?').get(req.params.id);
+  if (!t) return res.status(404).render('404', { title: 'Not found' });
+  db.prepare('DELETE FROM forum_threads WHERE id = ?').run(req.params.id);
+  res.redirect('/forum/c/' + t.slug);
+});
+
+app.post('/admin/forum/posts/:id/delete', requireAdmin, (req, res) => {
+  const p = db.prepare('SELECT * FROM forum_posts WHERE id = ?').get(req.params.id);
+  if (!p) return res.status(404).render('404', { title: 'Not found' });
+  const remaining = db.prepare('SELECT COUNT(*) c FROM forum_posts WHERE thread_id = ? AND id != ?').get(p.thread_id, p.id).c;
+  db.prepare('DELETE FROM forum_posts WHERE id = ?').run(p.id);
+  if (remaining === 0) {
+    db.prepare('DELETE FROM forum_threads WHERE id = ?').run(p.thread_id);
+    return res.redirect('/forum');
+  }
+  res.redirect('/forum/t/' + p.thread_id + '#latest');
 });
 
 /* ---------------- account ---------------- */
 
 app.get('/account', requireLogin, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
-  const vehicles = db.prepare('SELECT * FROM vehicles WHERE user_id = ? ORDER BY is_primary DESC, created_at DESC').all(user.id);
+  const vehicles = withLikes(
+    db.prepare('SELECT * FROM vehicles WHERE user_id = ? ORDER BY is_primary DESC, created_at DESC').all(user.id),
+    req.session.userId
+  );
   res.render('account', {
     title: 'My Account — Powerpacked',
     user, vehicles,
@@ -326,7 +538,10 @@ app.post('/account', requireLogin, upload.single('avatar'), (req, res) => {
   let newPasswordHash = user.password_hash;
   if (req.body.new_password) {
     if (req.body.new_password.length < 8) {
-      const vehicles = db.prepare('SELECT * FROM vehicles WHERE user_id = ? ORDER BY is_primary DESC').all(user.id);
+      const vehicles = withLikes(
+        db.prepare('SELECT * FROM vehicles WHERE user_id = ? ORDER BY is_primary DESC').all(user.id),
+        req.session.userId
+      );
       return res.render('account', { title: 'My Account — Powerpacked', user, vehicles, welcome: false, error: 'New password must be at least 8 characters.', notice: null });
     }
     newPasswordHash = bcrypt.hashSync(req.body.new_password, 10);

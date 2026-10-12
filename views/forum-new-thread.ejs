@@ -1,0 +1,19 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <a class="back-link" href="/forum/c/<%= category.slug %>">&larr; <%= category.name %></a>
+    <h1 class="page-title">Start a Thread</h1>
+    <p class="muted">Posting in <strong><%= category.name %></strong> as <strong><%= currentUser.username %></strong>.</p>
+    <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+    <form class="form" action="/forum/c/<%= category.slug %>/new" method="POST">
+      <label>Thread title *
+        <input type="text" name="title" required maxlength="120" value="<%= values.title || '' %>" placeholder="e.g. Best budget coilovers for a Foxbody?">
+      </label>
+      <label>Opening post *
+        <textarea name="body" rows="6" maxlength="5000" required placeholder="Tell the club what's on your mind..."><%= values.body || '' %></textarea>
+      </label>
+      <button class="btn btn-red btn-big" type="submit">Post Thread</button>
+    </form>
+  </div>
+</section>
+<%- include('partials/footer') %>

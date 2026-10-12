@@ -1,0 +1,36 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <p class="section-kicker">The clubhouse bulletin board</p>
+    <h1 class="page-title">Forum</h1>
+    <p class="muted-light">Talk builds, plan meets, ask the club. Keep it friendly, keep it about cars.</p>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap">
+    <div class="forum-list">
+      <% categories.forEach(c => { %>
+        <a class="forum-cat" href="/forum/c/<%= c.slug %>">
+          <div class="forum-cat-main">
+            <h2><%= c.name %></h2>
+            <p class="muted"><%= c.description %></p>
+          </div>
+          <div class="forum-cat-stats">
+            <span><strong><%= c.thread_count %></strong> threads</span>
+            <span><strong><%= c.post_count %></strong> posts</span>
+          </div>
+          <div class="forum-cat-latest">
+            <% if (c.latest) { %>
+              <span class="muted">Latest:</span>
+              <strong><%= c.latest.title.length > 42 ? c.latest.title.slice(0, 42) + '…' : c.latest.title %></strong>
+              <span class="muted">by <%= c.latest.username %></span>
+            <% } else { %>
+              <span class="muted">No posts yet</span>
+            <% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<%- include('partials/footer') %>
