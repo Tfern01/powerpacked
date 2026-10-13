@@ -148,12 +148,24 @@ const nextMemberNumber = db.transaction(() => {
   return 'PWR-' + String(seq).padStart(3, '0');
 });
 
-/** Seed the site-owner admin account on first run and record credentials in ADMIN.md. */
+/** Seed the site-owner admin account on first run and record credentials in ADMIN.md.
+ * If ADMIN_PASSWORD is set in the environment, it always wins: the admin
+ * account is created with it, or its password is reset to it on boot.
+ * This keeps the password out of the public repo while staying stable
+ * across ephemeral-database restarts (Render wipes the DB on restart). */
 function seedAdmin() {
+  const envPassword = process.env.ADMIN_PASSWORD || '';
   const existing = db.prepare('SELECT id FROM users WHERE is_admin = 1 LIMIT 1').get();
-  if (existing) return;
+  if (existing) {
+    if (envPassword) {
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+        .run(bcrypt.hashSync(envPassword, 10), existing.id);
+      console.log('Admin password synced from ADMIN_PASSWORD env var.');
+    }
+    return;
+  }
 
-  const password = crypto.randomBytes(12).toString('hex'); // 24 chars
+  const password = envPassword || crypto.randomBytes(12).toString('hex');
   const passwordHash = bcrypt.hashSync(password, 10);
   const memberNumber = nextMemberNumber();
   db.prepare(
@@ -161,7 +173,20 @@ function seedAdmin() {
      VALUES ('admin', 'admin@powerpacked.local', ?, ?, 'Site owner', 1)`
   ).run(passwordHash, memberNumber);
 
-  const adminDoc = `# Powerpacked — Admin Access
+  const adminDoc = envPassword
+    ? `# Powerpacked — Admin Access
+
+The site-owner admin account is seeded automatically on first run.
+
+- **Admin panel:** /admin (sign in first via /login)
+- **Username:** \`admin\`
+- **Password:** set via the ADMIN_PASSWORD environment variable (Render dashboard).
+  It is intentionally NOT written in this file, since this repo is public.
+
+Keep this file private. Change the password after your first login
+(Account page), and delete or move this file before sharing the project.
+`
+    : `# Powerpacked — Admin Access
 
 The site-owner admin account is seeded automatically on first run.
 
