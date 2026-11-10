@@ -13,9 +13,17 @@ const session = require('express-session');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const { db, nextMemberNumber } = require('./db');
+const { sendVerificationEmail } = require('./mailer');
+
+/* Email verification switch. Off until the SendGrid key is set up — when
+ * off, signup works exactly as before (auto-login, no verification email).
+ * Turn on with EMAIL_VERIFICATION=1 once SENDGRID_API_KEY + SENDGRID_FROM
+ * are configured; no code change needed. */
+const EMAIL_VERIFICATION = process.env.EMAIL_VERIFICATION === '1';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.set('trust proxy', 1);
 
 /* ---------------- uploads ---------------- */
 const uploadDir = path.join(__dirname, 'public', 'uploads');
@@ -55,6 +63,9 @@ const getCookie = (req, name) => {
 app.use((req, res, next) => {
   if (!PREVIEW_PASSWORD) return next();
   if (req.path === '/preview-lock') return next();
+  // Verification links arrive by email; the token is the credential, so
+  // these routes stay reachable without the preview password.
+  if (['/verify-email', '/verify-notice', '/resend-verification'].includes(req.path)) return next();
   if (getCookie(req, 'pp_preview') === previewToken(PREVIEW_PASSWORD)) return next();
   res.redirect('/preview-lock?next=' + encodeURIComponent(req.originalUrl));
 });
@@ -296,12 +307,14 @@ app.post('/signup', (req, res) => {
   const username = (req.body.username || '').trim();
   const email = (req.body.email || '').trim().toLowerCase();
   const password = req.body.password || '';
+  const confirmPassword = req.body.confirmPassword || '';
   const values = { username, email };
   let error = null;
 
   if (!USERNAME_RE.test(username)) error = 'Username must be 3–20 characters: letters, numbers, underscores.';
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) error = 'Please enter a valid email address.';
   else if (password.length < 8) error = 'Password must be at least 8 characters.';
+  else if (password !== confirmPassword) error = 'Passwords do not match.';
   else if (db.prepare('SELECT id FROM users WHERE username = ?').get(username)) error = 'That username is taken.';
   else if (db.prepare('SELECT id FROM users WHERE email = ?').get(email)) error = 'An account with that email already exists.';
 
@@ -309,11 +322,76 @@ app.post('/signup', (req, res) => {
 
   const passwordHash = bcrypt.hashSync(password, 10);
   const memberNumber = nextMemberNumber();
+
+  if (EMAIL_VERIFICATION) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    db.prepare(
+      'INSERT INTO users (username, email, password_hash, member_number, verification_token, verification_token_expires) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(username, email, passwordHash, memberNumber, token, expires);
+    const link = `${req.protocol}://${req.get('host')}/verify-email?token=${token}`;
+    sendVerificationEmail(email, link).catch((e) => console.error('[signup] verification email failed', e));
+    res.redirect('/verify-notice?email=' + encodeURIComponent(email));
+    return;
+  }
+
   const info = db
-    .prepare('INSERT INTO users (username, email, password_hash, member_number) VALUES (?, ?, ?, ?)')
+    .prepare('INSERT INTO users (username, email, password_hash, member_number, email_verified) VALUES (?, ?, ?, ?, 1)')
     .run(username, email, passwordHash, memberNumber);
   req.session.userId = info.lastInsertRowid;
   res.redirect('/account?welcome=1');
+});
+
+/* ---------------- email verification ---------------- */
+
+app.get('/verify-notice', (req, res) => {
+  res.render('verify-notice', {
+    title: 'Check your email — Powerpacked',
+    email: String(req.query.email || ''),
+  });
+});
+
+app.get('/verify-email', (req, res) => {
+  const token = String(req.query.token || '');
+  const user = token ? db.prepare('SELECT * FROM users WHERE verification_token = ?').get(token) : null;
+  if (!user || !user.verification_token_expires || user.verification_token_expires < Date.now()) {
+    return res.render('verify-result', { title: 'Email verification — Powerpacked', ok: false });
+  }
+  db.prepare(
+    'UPDATE users SET email_verified = 1, verification_token = NULL, verification_token_expires = NULL WHERE id = ?'
+  ).run(user.id);
+  req.session.userId = user.id;
+  res.render('verify-result', { title: 'Email verified — Powerpacked', ok: true });
+});
+
+app.get('/resend-verification', (req, res) => {
+  res.render('resend-verification', {
+    title: 'Resend verification email — Powerpacked',
+    message: null,
+    email: '',
+  });
+});
+
+app.post('/resend-verification', (req, res) => {
+  const email = (req.body.email || '').trim().toLowerCase();
+  const user = email ? db.prepare('SELECT * FROM users WHERE email = ?').get(email) : null;
+  if (user && !user.email_verified) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    db.prepare('UPDATE users SET verification_token = ?, verification_token_expires = ? WHERE id = ?').run(
+      token,
+      expires,
+      user.id
+    );
+    const link = `${req.protocol}://${req.get('host')}/verify-email?token=${token}`;
+    sendVerificationEmail(email, link).catch((e) => console.error('[resend] verification email failed', e));
+  }
+  // Same message either way, so nobody can probe which emails have accounts.
+  res.render('resend-verification', {
+    title: 'Resend verification email — Powerpacked',
+    message: 'If an account with that email is still waiting for verification, a new link is on its way.',
+    email: '',
+  });
 });
 
 app.get('/login', (req, res) => {
@@ -328,6 +406,13 @@ app.post('/login', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE username = ? OR email = ?').get(login, login);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     return res.render('login', { title: 'Log in — Powerpacked', error: 'Invalid username/email or password.', next });
+  }
+  if (EMAIL_VERIFICATION && !user.email_verified) {
+    return res.render('login', {
+      title: 'Log in — Powerpacked',
+      error: 'Please verify your email first. We sent a link to ' + user.email + '.',
+      next,
+    });
   }
   req.session.userId = user.id;
   res.redirect(next.startsWith('/') && !next.startsWith('//') ? next : user.is_admin ? '/admin' : '/account');

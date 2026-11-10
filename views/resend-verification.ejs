@@ -1,0 +1,17 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <p class="section-kicker">Verification email</p>
+    <h1 class="page-title">Resend the link</h1>
+    <p class="muted">Enter the email you signed up with and we'll send a fresh verification link.</p>
+    <% if (message) { %><div class="alert"><%= message %></div><% } %>
+    <form class="form" action="/resend-verification" method="POST">
+      <label>Email
+        <input type="email" name="email" required value="<%= email || '' %>" autocomplete="email">
+      </label>
+      <button class="btn btn-red btn-big" type="submit">Send a new link</button>
+    </form>
+    <p class="muted"><a href="/login">Back to log in</a>.</p>
+  </div>
+</section>
+<%- include('partials/footer') %>

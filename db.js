@@ -121,6 +121,16 @@ const setMeta = db.prepare(
   'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
 );
 
+/* Email verification columns (added 2026-11-10). */
+for (const [col, def] of [
+  ['email_verified', 'INTEGER NOT NULL DEFAULT 0'],
+  ['verification_token', 'TEXT'],
+  ['verification_token_expires', 'INTEGER'],
+]) {
+  const has = db.prepare('PRAGMA table_info(users)').all().some((r) => r.name === col);
+  if (!has) db.exec(`ALTER TABLE users ADD COLUMN ${col} ${def}`);
+}
+
 if (!getMeta.get('member_seq')) {
   setMeta.run('member_seq', '0');
 }
@@ -158,7 +168,7 @@ function seedAdmin() {
   const existing = db.prepare('SELECT id FROM users WHERE is_admin = 1 LIMIT 1').get();
   if (existing) {
     if (envPassword) {
-      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+      db.prepare('UPDATE users SET password_hash = ?, email_verified = 1 WHERE id = ?')
         .run(bcrypt.hashSync(envPassword, 10), existing.id);
       console.log('Admin password synced from ADMIN_PASSWORD env var.');
     }
@@ -169,8 +179,8 @@ function seedAdmin() {
   const passwordHash = bcrypt.hashSync(password, 10);
   const memberNumber = nextMemberNumber();
   db.prepare(
-    `INSERT INTO users (username, email, password_hash, member_number, bio, is_admin)
-     VALUES ('admin', 'admin@powerpacked.local', ?, ?, 'Site owner', 1)`
+    `INSERT INTO users (username, email, password_hash, member_number, bio, is_admin, email_verified)
+     VALUES ('admin', 'admin@powerpacked.local', ?, ?, 'Site owner', 1, 1)`
   ).run(passwordHash, memberNumber);
 
   const adminDoc = envPassword

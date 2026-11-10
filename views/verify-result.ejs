@@ -1,0 +1,17 @@
+<%- include('partials/header') %>
+<section class="section">
+  <div class="wrap narrow">
+    <% if (ok) { %>
+      <p class="section-kicker">You're in</p>
+      <h1 class="page-title">Email verified</h1>
+      <p class="muted">Your account is active. Welcome to Powerpacked.</p>
+      <p><a class="btn btn-red btn-big" href="/account">Go to your account</a></p>
+    <% } else { %>
+      <p class="section-kicker">Link problem</p>
+      <h1 class="page-title">That link didn't work</h1>
+      <p class="muted">This verification link is expired or invalid. Links last 24 hours.</p>
+      <p><a class="btn btn-red btn-big" href="/resend-verification">Send a new link</a></p>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>
