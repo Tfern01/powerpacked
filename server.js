@@ -69,7 +69,7 @@ app.get('/preview-lock', (req, res) => {
 <title>Powerpacked — Coming Soon</title>
 <style>html,body{height:100%;overflow:hidden}
 body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#141210;color:#f3ead8;font-family:Georgia,serif}
-.card{background:#1e1a16;border:1px solid #3a332b;border-radius:12px;padding:2.5rem 2rem;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.card{background:#1e1a16;border:1px solid #3a332b;border-radius:12px;padding:2.5rem 2rem;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);transform:translateY(-3vh)}
 .wordmark{font-family:'Arial Narrow',Arial,sans-serif;font-weight:900;font-size:2.2rem;letter-spacing:.08em;color:#f3ead8;margin:0}
 .pill{display:inline-block;margin:.8rem 0 .4rem;padding:.45rem 1.25rem;border:2px solid #c8402a;border-radius:999px;color:#c8402a;font-family:'Arial Narrow',Arial,sans-serif;font-weight:700;font-size:1.15rem;letter-spacing:.25em}
 p.tag{color:#f3ead8;font-size:1.05rem;font-style:italic;margin:.4rem 0 1rem}
