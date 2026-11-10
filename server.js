@@ -66,17 +66,24 @@ app.get('/preview-lock', (req, res) => {
   const next = String(req.query.next || '/');
   res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Powerpacked — Private Preview</title>
+<title>Powerpacked — Coming Soon</title>
 <style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#141210;color:#f3ead8;font-family:Georgia,serif}
-.card{background:#1e1a16;border:1px solid #3a332b;border-radius:12px;padding:2.5rem 2rem;max-width:380px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-.badge{display:inline-block;border:2px solid #c8402a;border-radius:50%;width:74px;height:74px;line-height:70px;font-size:1.6rem;font-weight:700;color:#c8402a;margin-bottom:1rem}
-h1{font-size:1.4rem;margin:.4rem 0 .2rem;letter-spacing:.06em}
-p.sub{color:#b9ac93;font-size:.9rem;margin:0 0 1.4rem}
+.card{background:#1e1a16;border:1px solid #3a332b;border-radius:12px;padding:2.5rem 2rem;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.wordmark{font-family:'Arial Narrow',Arial,sans-serif;font-weight:900;font-size:2.2rem;letter-spacing:.08em;color:#f3ead8;margin:0}
+.pill{display:inline-block;margin:.8rem 0 .4rem;padding:.35rem 1rem;border:2px solid #c8402a;border-radius:999px;color:#c8402a;font-family:'Arial Narrow',Arial,sans-serif;font-weight:700;font-size:.95rem;letter-spacing:.25em}
+p.tag{color:#f3ead8;font-size:1.05rem;font-style:italic;margin:.4rem 0 1rem}
+p.sub{color:#b9ac93;font-size:.9rem;margin:0 0 1.4rem;line-height:1.5}
+.divider{border:none;border-top:1px solid #3a332b;margin:1.4rem 0}
+p.preview{color:#b9ac93;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;margin:0 0 .8rem}
 input{width:100%;box-sizing:border-box;padding:.8rem;font-size:1rem;border-radius:8px;border:1px solid #3a332b;background:#141210;color:#f3ead8;margin-bottom:1rem}
 button{width:100%;padding:.85rem;font-size:1.05rem;font-weight:700;letter-spacing:.08em;border:none;border-radius:8px;background:#c8402a;color:#fff;cursor:pointer}
 button:hover{background:#a93222}</style></head><body>
-<div class="card"><div class="badge">PP</div><h1>PRIVATE PREVIEW</h1>
-<p class="sub">Powerpacked is still in the garage.<br>Enter the preview password to take a look.</p>
+<div class="card"><p class="wordmark">POWERPACKED</p>
+<div class="pill">COMING SOON</div>
+<p class="tag">Driven by Difference</p>
+<p class="sub">One community for every kind of car culture.<br>We're still in the garage, tuning up —<br>check back soon.</p>
+<hr class="divider">
+<p class="preview">Private preview</p>
 ${err}<form method="post" action="/preview-lock">
 <input type="hidden" name="next" value="${next.replace(/"/g, '&quot;')}">
 <input type="password" name="password" placeholder="Preview password" autofocus required>
