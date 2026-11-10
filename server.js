@@ -79,9 +79,9 @@ p.preview{color:#b9ac93;font-size:.8rem;letter-spacing:.12em;text-transform:uppe
 input{width:100%;box-sizing:border-box;padding:.8rem;font-size:1rem;border-radius:8px;border:1px solid #3a332b;background:#141210;color:#f3ead8;margin-bottom:1rem}
 button{width:100%;padding:.85rem;font-size:1.05rem;font-weight:700;letter-spacing:.08em;border:none;border-radius:8px;background:#c8402a;color:#fff;cursor:pointer}
 button:hover{background:#a93222}</style></head><body>
-<div class="card"><p class="wordmark">POWERPACKED</p>
+<div class="card"><div class="pill">COMING SOON</div>
+<p class="wordmark">POWERPACKED</p>
 <p class="tag">Driven by Difference</p>
-<div class="pill">COMING SOON</div>
 <p class="sub">One community for every kind of ride.<br>We're still in the garage, tuning up —<br>check back soon.</p>
 <hr class="divider">
 <p class="preview">Private preview</p>
