@@ -67,10 +67,11 @@ app.get('/preview-lock', (req, res) => {
   res.send(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Powerpacked — Coming Soon</title>
-<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#141210;color:#f3ead8;font-family:Georgia,serif}
+<style>html,body{height:100%;overflow:hidden}
+body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#141210;color:#f3ead8;font-family:Georgia,serif}
 .card{background:#1e1a16;border:1px solid #3a332b;border-radius:12px;padding:2.5rem 2rem;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .wordmark{font-family:'Arial Narrow',Arial,sans-serif;font-weight:900;font-size:2.2rem;letter-spacing:.08em;color:#f3ead8;margin:0}
-.pill{display:inline-block;margin:.8rem 0 .4rem;padding:.35rem 1rem;border:2px solid #c8402a;border-radius:999px;color:#c8402a;font-family:'Arial Narrow',Arial,sans-serif;font-weight:700;font-size:.95rem;letter-spacing:.25em}
+.pill{display:inline-block;margin:.8rem 0 .4rem;padding:.45rem 1.25rem;border:2px solid #c8402a;border-radius:999px;color:#c8402a;font-family:'Arial Narrow',Arial,sans-serif;font-weight:700;font-size:1.15rem;letter-spacing:.25em}
 p.tag{color:#f3ead8;font-size:1.05rem;font-style:italic;margin:.4rem 0 1rem}
 p.sub{color:#b9ac93;font-size:.9rem;margin:0 0 1.4rem;line-height:1.5}
 .divider{border:none;border-top:1px solid #3a332b;margin:1.4rem 0}
@@ -79,9 +80,9 @@ input{width:100%;box-sizing:border-box;padding:.8rem;font-size:1rem;border-radiu
 button{width:100%;padding:.85rem;font-size:1.05rem;font-weight:700;letter-spacing:.08em;border:none;border-radius:8px;background:#c8402a;color:#fff;cursor:pointer}
 button:hover{background:#a93222}</style></head><body>
 <div class="card"><p class="wordmark">POWERPACKED</p>
-<div class="pill">COMING SOON</div>
 <p class="tag">Driven by Difference</p>
-<p class="sub">One community for every kind of car culture.<br>We're still in the garage, tuning up —<br>check back soon.</p>
+<div class="pill">COMING SOON</div>
+<p class="sub">One community for every kind of ride.<br>We're still in the garage, tuning up —<br>check back soon.</p>
 <hr class="divider">
 <p class="preview">Private preview</p>
 ${err}<form method="post" action="/preview-lock">
