@@ -1,0 +1,11 @@
+<article class="card event-card-static<%= typeof past !== 'undefined' && past ? ' past' : '' %>">
+  <div class="event-date-badge">
+    <span class="d"><%= new Date(e.event_date + 'T12:00:00').getDate() %></span>
+    <span class="m"><%= new Date(e.event_date + 'T12:00:00').toLocaleString('en-US', { month: 'short' }).toUpperCase() %></span>
+  </div>
+  <h3><%= e.title %></h3>
+  <p><span class="attendance-badge <%= e.attendance_type || 'none' %>"><%= e.attendance_label %></span></p>
+  <p class="muted"><%= new Date(e.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) %><% if (e.event_time) { %> &middot; <%= e.event_time %><% } %></p>
+  <% if (e.location) { %><p class="muted"><%= e.location %></p><% } %>
+  <% if (e.description) { %><p><%= e.description %></p><% } %>
+</article>

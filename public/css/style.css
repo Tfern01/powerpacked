@@ -199,6 +199,7 @@ a.card { transition: transform 0.15s ease, border-color 0.15s ease; }
   padding: 0.15rem 0.6rem; border-radius: 999px; vertical-align: middle;
 }
 .event-card { padding-left: 5.2rem; }
+.event-card-static { padding-left: 5.2rem; }
 .event-date-badge {
   position: absolute; left: 1.1rem; top: 1.2rem;
   background: var(--red); color: #fff; border-radius: 8px;
@@ -208,6 +209,15 @@ a.card { transition: transform 0.15s ease, border-color 0.15s ease; }
 .event-date-badge .d { display: block; font-family: var(--font-display); font-size: 1.7rem; line-height: 1; }
 .event-date-badge .m { display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; }
 .event-card-static.past { opacity: 0.72; }
+
+/* attendance badges — the calendar lists only events Powerpacked attends */
+.attendance-badge {
+  display: inline-block; background: var(--dark); color: var(--gold);
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 0.25rem 0.65rem; border-radius: 999px;
+}
+.attendance-badge.club { background: var(--red); color: #fff; }
+.attendance-badge.none { background: var(--muted); color: #fff; }
 
 .member-card { display: flex; gap: 1rem; align-items: center; }
 .avatar-sm { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid var(--red); }
@@ -314,6 +324,28 @@ label.check input { width: 1.3rem; height: 1.3rem; accent-color: var(--red); }
 .table th { font-family: var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; font-size: 1.05rem; background: var(--dark); color: var(--cream); }
 .table-actions { display: flex; gap: 0.5rem; }
 .table-actions form { display: inline; }
+.suggestions-table td:first-child { white-space: nowrap; }
+.suggestions-table td:last-child { white-space: nowrap; }
+
+/* ---------------- events calendar table ---------------- */
+.events-table { margin-bottom: 2.5rem; }
+.events-table th:nth-child(1) { width: 150px; }
+.events-table th:nth-child(3) { width: 260px; }
+.events-table td.ev-date { white-space: nowrap; }
+.events-table .attendance-badge { white-space: nowrap; }
+.events-table td.ev-event strong { font-family: var(--font-display); font-size: 1.25rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.events-table td.ev-event .ev-desc { white-space: pre-line; }
+.events-table td.ev-event .ev-gcal { font-size: 0.85rem; font-weight: 700; color: var(--red); }
+.events-table td.ev-event .ev-gcal:hover { color: #d32f36; }
+.cal-subscribe { margin-top: 0.9rem; font-size: 0.9rem; color: #cfc2a8; }
+.cal-subscribe a { color: var(--cream); text-decoration: underline; }
+.cal-subscribe a:hover { color: var(--gold); }
+.events-table tr.day-divider td {
+  background: var(--dark); color: var(--gold);
+  font-family: var(--font-display); font-size: 1.1rem; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 0.55rem 1rem;
+}
+.events-table--past tbody tr { opacity: 0.72; }
 
 /* ---------------- footer ---------------- */
 .footer { background: var(--dark); color: var(--cream); border-top: 3px solid var(--red); margin-top: auto; }
@@ -336,6 +368,22 @@ label.check input { width: 1.3rem; height: 1.3rem; accent-color: var(--red); }
   .carousel-track { aspect-ratio: 4/3; }
   .table-actions { flex-direction: column; }
   .section-head { align-items: flex-start; flex-direction: column; }
+  /* events table stacks into cards on small screens */
+  .events-table thead { display: none; }
+  .events-table, .events-table tbody, .events-table tr, .events-table td { display: block; width: 100%; }
+  .events-table tr { border-bottom: 2px solid var(--line); }
+  .events-table tr:last-child { border-bottom: none; }
+  .events-table td { border-bottom: none; padding: 0.35rem 1rem; }
+  .events-table td.ev-date { white-space: normal; padding-top: 0.9rem; }
+  .events-table td.ev-who { padding-bottom: 0.9rem; }
+  .events-table td::before {
+    content: attr(data-label); display: block;
+    font-family: var(--font-display); font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 0.1rem;
+  }
+  .events-table td.ev-event::before { display: none; }
+  .events-table tr.day-divider td { padding: 0.55rem 1rem; }
+  .events-table tr.day-divider td::before { display: none; }
 }
 
 /* ---------------- likes ---------------- */

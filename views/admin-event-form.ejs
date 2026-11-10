@@ -12,8 +12,22 @@
         <label>Date * <input type="date" name="event_date" required value="<%= event.event_date || '' %>"></label>
         <label>Time <input type="text" name="event_time" maxlength="20" placeholder="e.g. 6:00 PM" value="<%= event.event_time || '' %>"></label>
       </div>
+      <% if (!event.id) { %>
+        <%- include('partials/repeat-fields', { repeat_type: event.repeat_type || 'none', repeat_until: event.repeat_until || '' }) %>
+      <% } %>
       <label>Location
         <input type="text" name="location" maxlength="160" value="<%= event.location || '' %>">
+      </label>
+      <label>How is the club showing up?
+        <select name="attendance_type">
+          <option value="" <%= !event.attendance_type ? 'selected' : '' %>>Not set yet</option>
+          <option value="club" <%= event.attendance_type === 'club' ? 'selected' : '' %>>Whole club attending</option>
+          <option value="representative" <%= event.attendance_type === 'representative' ? 'selected' : '' %>>A representative is going</option>
+          <option value="members" <%= event.attendance_type === 'members' ? 'selected' : '' %>>Multiple members are going</option>
+        </select>
+      </label>
+      <label>Representative's name (when a rep is going)
+        <input type="text" name="attendance_detail" maxlength="80" placeholder="e.g. Marcus T." value="<%= event.attendance_detail || '' %>">
       </label>
       <label>Description
         <textarea name="description" rows="5" maxlength="2000"><%= event.description || '' %></textarea>

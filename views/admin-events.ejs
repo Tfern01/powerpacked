@@ -10,13 +10,14 @@
   <div class="wrap">
     <% if (events.length) { %>
       <table class="table">
-        <thead><tr><th>Date</th><th>Title</th><th>Location</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Title</th><th>Location</th><th>Attendance</th><th></th></tr></thead>
         <tbody>
           <% events.forEach(e => { %>
             <tr>
               <td><%= e.event_date %></td>
               <td><strong><%= e.title %></strong></td>
               <td class="muted"><%= e.location || '—' %></td>
+              <td><%= e.attendance_label %></td>
               <td class="table-actions">
                 <a class="btn btn-outline btn-sm" href="/admin/events/<%= e.id %>/edit">Edit</a>
                 <form action="/admin/events/<%= e.id %>/delete" method="POST" onsubmit="return confirm('Delete this event?')"><button class="btn btn-outline btn-sm btn-danger" type="submit">Delete</button></form>

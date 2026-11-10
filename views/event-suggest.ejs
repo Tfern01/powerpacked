@@ -1,0 +1,53 @@
+<%- include('partials/header') %>
+<section class="page-head">
+  <div class="wrap">
+    <a class="back-link back-link-light" href="/events">&larr; Events</a>
+    <p class="section-kicker">Put it on the calendar</p>
+    <h1 class="page-title">Suggest an Event</h1>
+  </div>
+</section>
+<section class="section">
+  <div class="wrap narrow">
+    <p class="muted">Add a meet, cruise, or show the club will be at. The calendar lists only events Powerpacked attends — pick how the club is showing up below.</p>
+    <% if (sent) { %>
+      <div class="alert alert-good">Event added. It's now on the calendar.</div>
+      <a class="btn btn-outline" href="/events">Back to the calendar</a>
+    <% } else { %>
+      <% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+      <form class="form" action="/events/suggest" method="POST">
+        <label>Event title *
+          <input type="text" name="title" required maxlength="120" value="<%= values.title || '' %>">
+        </label>
+        <div class="form-grid">
+          <label>Date * <input type="date" name="event_date" required value="<%= values.event_date || '' %>"></label>
+          <label>Time <input type="text" name="event_time" maxlength="20" placeholder="e.g. 6:00 PM" value="<%= values.event_time || '' %>"></label>
+        </div>
+        <%- include('partials/repeat-fields', { repeat_type: values.repeat_type || 'none', repeat_until: values.repeat_until || '' }) %>
+        <label>Location *
+          <input type="text" name="location" required maxlength="160" placeholder="Venue, city, state" value="<%= values.location || '' %>">
+        </label>
+        <label>How is the club showing up? *
+          <select name="attendance_type">
+            <option value="club" <%= attendance_type === 'club' ? 'selected' : '' %>>Whole club attending</option>
+            <option value="representative" <%= attendance_type === 'representative' ? 'selected' : '' %>>A representative is going</option>
+            <option value="members" <%= attendance_type === 'members' ? 'selected' : '' %>>Multiple members are going</option>
+          </select>
+        </label>
+        <label>Representative's name
+          <input type="text" name="attendance_detail" maxlength="80" placeholder="e.g. Marcus T. — only needed for a representative" value="<%= attendance_detail || '' %>">
+        </label>
+        <label>Who from the club is going?
+          <input type="text" name="attendance_note" maxlength="500" placeholder="e.g. Marcus T. is repping, or 4 of us are rolling out together" value="<%= values.attendance_note || '' %>">
+        </label>
+        <label>Details
+          <textarea name="description" rows="4" maxlength="2000" placeholder="What kind of event is it? Entry fee, what to expect..."><%= values.description || '' %></textarea>
+        </label>
+        <label>Link (optional)
+          <input type="text" name="link" maxlength="300" placeholder="Event page, flyer, or Facebook link" value="<%= values.link || '' %>">
+        </label>
+        <button class="btn btn-red btn-big" type="submit">Add Event</button>
+      </form>
+    <% } %>
+  </div>
+</section>
+<%- include('partials/footer') %>

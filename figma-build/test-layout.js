@@ -1,0 +1,26 @@
+// Empirical test: does layoutAlign CENTER stick, and does resize-then-textAutoResize HEIGHT work?
+const p = figma.createFrame();
+p.name = 'test-scratch';
+p.layoutMode = 'VERTICAL';
+p.primaryAxisSizingMode = 'AUTO';
+p.counterAxisSizingMode = 'FIXED';
+p.resize(1440, 100);
+figma.currentPage.appendChild(p);
+const child = figma.createFrame();
+child.resize(1140, 50);
+child.layoutMode = 'VERTICAL';
+child.primaryAxisSizingMode = 'AUTO';
+child.counterAxisSizingMode = 'FIXED';
+p.appendChild(child);
+child.layoutAlign = 'CENTER';
+await figma.loadFontAsync({ family: 'Barlow', style: 'Regular' });
+const t = figma.createText();
+t.fontName = { family: 'Barlow', style: 'Regular' };
+t.characters = 'Hello world this is a long wrapped paragraph to test height behavior in auto layout frames and see if it grows';
+t.fontSize = 16;
+t.resize(300, 10);
+t.textAutoResize = 'HEIGHT';
+child.appendChild(t);
+const out = { childX: child.x, childAlign: child.layoutAlign, textH: Math.round(t.height), textTAR: t.textAutoResize, childH: Math.round(child.height) };
+p.remove();
+return out;

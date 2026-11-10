@@ -49,6 +49,23 @@ CREATE TABLE IF NOT EXISTS events (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+/* Member-suggested events (DORMANT — suggestions are off for now, but the
+ * table stays so they can return one day. No code reads or writes it.) */
+CREATE TABLE IF NOT EXISTS event_suggestions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  username TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  location TEXT DEFAULT '',
+  event_date TEXT NOT NULL,
+  event_time TEXT DEFAULT '',
+  link TEXT DEFAULT '',
+  attendance_note TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS products (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -129,6 +146,18 @@ for (const [col, def] of [
 ]) {
   const has = db.prepare('PRAGMA table_info(users)').all().some((r) => r.name === col);
   if (!has) db.exec(`ALTER TABLE users ADD COLUMN ${col} ${def}`);
+}
+
+/* Event attendance columns (added 2026-11-10). attendance_type is one of
+ * 'club' (whole club attending), 'representative' (a club rep is going,
+ * name in attendance_detail), 'members' (multiple members attending).
+ * NULL on older rows: those predate attendance tracking. */
+for (const [col, def] of [
+  ['attendance_type', 'TEXT'],
+  ['attendance_detail', 'TEXT'],
+]) {
+  const has = db.prepare('PRAGMA table_info(events)').all().some((r) => r.name === col);
+  if (!has) db.exec(`ALTER TABLE events ADD COLUMN ${col} ${def}`);
 }
 
 if (!getMeta.get('member_seq')) {

@@ -181,9 +181,9 @@ const safeBack = (req, fallback) => {
 /* ---------------- public pages ---------------- */
 
 app.get('/', (req, res) => {
-  const upcoming = db
+  const upcoming = withAttendance(db
     .prepare(`SELECT * FROM events WHERE date(event_date) >= date('now') ORDER BY event_date ASC, event_time ASC LIMIT 3`)
-    .all();
+    .all());
   const corner = db
     .prepare(`
       SELECT u.username, u.member_number,
@@ -206,13 +206,99 @@ app.get('/', (req, res) => {
 });
 
 app.get('/events', (req, res) => {
-  const upcoming = db
+  const upcoming = withAttendance(db
     .prepare(`SELECT * FROM events WHERE date(event_date) >= date('now') ORDER BY event_date ASC, event_time ASC`)
-    .all();
-  const past = db
+    .all());
+  const past = withAttendance(db
     .prepare(`SELECT * FROM events WHERE date(event_date) < date('now') ORDER BY event_date DESC LIMIT 12`)
-    .all();
-  res.render('events', { title: 'Events — Powerpacked', upcoming, past });
+    .all());
+  // This week (Mon–Sun) grouped by day, then everything after that.
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const weekStart = toISODate(monday);
+  const weekEnd = toISODate(sunday);
+  const thisWeek = [];
+  const comingUp = [];
+  for (const e of upcoming) {
+    if (e.event_date > weekEnd) { comingUp.push(e); continue; }
+    let day = thisWeek.find((d) => d.date === e.event_date);
+    if (!day) { day = { date: e.event_date, label: dayLabel(e.event_date), events: [] }; thisWeek.push(day); }
+    day.events.push(e);
+  }
+  // Whole-feed subscribe links: the .ics feed itself, and Google's
+  // "add calendar by URL" deep link for it.
+  const feedUrl = `${req.protocol}://${req.get('host')}/events.ics`;
+  const feedGcalUrl = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(feedUrl);
+  res.render('events', { title: 'Events — Powerpacked', thisWeek, comingUp, past, weekStart, weekEnd, feedGcalUrl });
+});
+
+/* ---- calendar feed ----
+ * Public iCalendar feed of upcoming events. No credentials, no Google
+ * account — subscribers (Google Calendar, Apple Calendar, Outlook)
+ * pull this URL. Stays behind the preview gate like every other page. */
+app.get('/events.ics', (req, res) => {
+  const events = withAttendance(db
+    .prepare(`SELECT * FROM events WHERE date(event_date) >= date('now') ORDER BY event_date ASC, event_time ASC`)
+    .all());
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', 'inline; filename="powerpacked-events.ics"');
+  res.send(buildIcs(events));
+});
+
+/* ---- add an event (admin-only) ----
+ * Tyler's own quick event form — this is how events get on the calendar.
+ * The calendar lists only events Powerpacked is attending, so every
+ * event created here carries an attendance type. (The event_suggestions
+ * table stays in the DB as dormant schema — member suggestions may
+ * return one day.) */
+app.get('/events/suggest', requireAdmin, (req, res) => {
+  res.render('event-suggest', { title: 'Suggest an Event — Powerpacked', sent: false, error: null, values: {}, attendance_type: 'club', attendance_detail: '' });
+});
+
+app.post('/events/suggest', requireAdmin, (req, res) => {
+  const values = {
+    title: (req.body.title || '').trim().slice(0, 120),
+    event_date: (req.body.event_date || '').trim(),
+    event_time: (req.body.event_time || '').trim().slice(0, 20),
+    location: (req.body.location || '').trim().slice(0, 160),
+    description: (req.body.description || '').trim().slice(0, 2000),
+    link: (req.body.link || '').trim().slice(0, 300),
+    attendance_note: (req.body.attendance_note || '').trim().slice(0, 500),
+    repeat_type: (req.body.repeat_type || 'none').trim(),
+    repeat_until: (req.body.repeat_until || '').trim(),
+  };
+  const attendance = normAttendance(req.body);
+  let error = null;
+  if (!values.title) error = 'Give the event a title.';
+  else if (!/^\d{4}-\d{2}-\d{2}$/.test(values.event_date)) error = 'Pick a date for the event.';
+  else if (!values.location) error = 'Tell us where it is.';
+  else if (!attendance.type) error = 'Pick how the club is showing up: whole club, a representative, or multiple members.';
+  let dates = null;
+  if (!error) {
+    const expanded = expandOccurrences(values.event_date, values.repeat_type, values.repeat_until);
+    if (expanded.error) error = expanded.error;
+    else dates = expanded.dates;
+  }
+  if (error) {
+    return res.render('event-suggest', { title: 'Suggest an Event — Powerpacked', sent: false, error, values, attendance_type: req.body.attendance_type || '', attendance_detail: req.body.attendance_detail || '' });
+  }
+  let description = values.description;
+  if (values.attendance_note) description = (description ? description + '\n\nWho\'s going: ' + values.attendance_note : 'Who\'s going: ' + values.attendance_note).slice(0, 2000);
+  if (values.link) description = (description ? description + '\n\nMore info: ' + values.link : 'More info: ' + values.link).slice(0, 2000);
+  const insert = db.transaction(() => {
+    for (const d of dates) {
+      db.prepare(`INSERT INTO events
+        (title, description, location, event_date, event_time, image, attendance_type, attendance_detail)
+        VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`)
+        .run(values.title, description, values.location, d,
+          values.event_time, attendance.type, attendance.detail);
+    }
+  });
+  insert();
+  res.render('event-suggest', { title: 'Suggest an Event — Powerpacked', sent: true, error: null, values: {}, attendance_type: 'club', attendance_detail: '' });
 });
 
 app.get('/gallery', (req, res) => {
@@ -716,8 +802,259 @@ const validateEvent = (b) => {
   return null;
 };
 
+/* ---- event attendance ----
+ * The calendar lists only events Powerpacked is attending.
+ * attendance_type: 'club' (whole club), 'representative' (a club rep,
+ * name in attendance_detail), 'members' (multiple members). NULL on
+ * older rows predates attendance tracking. */
+const ATTENDANCE_TYPES = ['club', 'representative', 'members'];
+const attendanceLabel = (e) => {
+  if (e.attendance_type === 'club') return 'Whole club attending';
+  if (e.attendance_type === 'representative') {
+    const who = (e.attendance_detail || '').trim();
+    return 'Represented by ' + (who || 'a club rep');
+  }
+  if (e.attendance_type === 'members') return 'Multiple members attending';
+  return 'Powerpacked attending';
+};
+const withAttendance = (rows) => rows.map((e) => ({ ...e, attendance_label: attendanceLabel(e), gcal_url: googleCalUrl(e) }));
+const normAttendance = (b) => {
+  const type = ATTENDANCE_TYPES.includes(b.attendance_type) ? b.attendance_type : null;
+  const detail = type ? (b.attendance_detail || '').trim().slice(0, 80) : '';
+  return { type, detail: detail || null };
+};
+
+/* ---- recurring events ----
+ * No recurrence rules are stored — a repeating event just inserts one
+ * row per occurrence. Each occurrence is independent afterwards
+ * (edit or delete one without touching the others). */
+const REPEAT_TYPES = ['none', 'weekly', 'biweekly', 'monthly'];
+const MAX_OCCURRENCES = 52;
+const addMonthsClamped = (d, n) => {
+  const day = d.getDate();
+  const out = new Date(d.getFullYear(), d.getMonth() + n, 1);
+  const last = new Date(out.getFullYear(), out.getMonth() + 1, 0).getDate();
+  out.setDate(Math.min(day, last));
+  return out;
+};
+const expandOccurrences = (firstDate, repeat, until) => {
+  // Returns { dates: ['YYYY-MM-DD', ...] } or { error: '...' }.
+  if (!REPEAT_TYPES.includes(repeat)) repeat = 'none';
+  if (repeat === 'none') return { dates: [firstDate] };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(until || '')) return { error: 'Pick a "repeat until" date for the repeats.' };
+  if (until < firstDate) return { error: '"Repeat until" must be on or after the first date.' };
+  const dates = [];
+  const first = new Date(firstDate + 'T12:00:00');
+  const end = new Date(until + 'T12:00:00');
+  let i = 0;
+  for (;;) {
+    // Step from the first date each time, so monthly keeps its anchor
+    // day (Jan 31 -> Feb 28 -> Mar 31) instead of drifting.
+    let cur;
+    if (repeat === 'weekly') cur = new Date(first.getFullYear(), first.getMonth(), first.getDate() + 7 * i);
+    else if (repeat === 'biweekly') cur = new Date(first.getFullYear(), first.getMonth(), first.getDate() + 14 * i);
+    else cur = addMonthsClamped(first, i);
+    if (cur > end) break;
+    dates.push(toISODate(cur));
+    if (dates.length > MAX_OCCURRENCES) return { error: `That repeat range would create more than ${MAX_OCCURRENCES} events — pick an earlier end date.` };
+    i++;
+  }
+  return { dates };
+};
+
+/** Local YYYY-MM-DD for a Date, and a long day label for a YYYY-MM-DD. */
+const toISODate = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayLabel = (iso) =>
+  new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+/* ---- calendar feed (.ics) + Google Calendar links ----
+ * No credentials needed: the feed is a plain iCalendar file built from
+ * the events table, and the per-event links use Google's public
+ * "add event" template URL. Times are local to the club
+ * (America/Chicago). The feed route stays behind the preview gate
+ * like every other page — members subscribe once the site is public. */
+const CLUB_TZ = 'America/Chicago';
+
+/** Parse a free-text event time ("6:00 PM", "6 PM", "18:00") -> {hour, minute} or null. */
+const parseEventTime = (s) => {
+  if (!s) return null;
+  const t = String(s).trim();
+  let m = t.match(/^(\d{1,2}):(\d{2})\s*([AaPp])\.?[Mm]\.?$/);
+  if (m) {
+    let h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (h < 1 || h > 12 || min > 59) return null;
+    if (/^[Pp]/.test(m[3]) && h !== 12) h += 12;
+    if (/^[Aa]/.test(m[3]) && h === 12) h = 0;
+    return { hour: h, minute: min };
+  }
+  m = t.match(/^(\d{1,2})\s*([AaPp])\.?[Mm]\.?$/);
+  if (m) {
+    let h = parseInt(m[1], 10);
+    if (h < 1 || h > 12) return null;
+    if (/^[Pp]/.test(m[2]) && h !== 12) h += 12;
+    if (/^[Aa]/.test(m[2]) && h === 12) h = 0;
+    return { hour: h, minute: 0 };
+  }
+  m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (m) {
+    const h = parseInt(m[1], 10), min = parseInt(m[2], 10);
+    if (h > 23 || min > 59) return null;
+    return { hour: h, minute: min };
+  }
+  return null;
+};
+
+/** Resolve an event row to its calendar timing. Timed events default to a
+ * 2-hour duration (wall-clock, so 11:00 PM ends 1:00 AM the next day).
+ * A missing or unparseable time becomes an all-day event. */
+const eventTiming = (e) => {
+  const t = parseEventTime(e.event_time);
+  if (!t) return { allDay: true, date: e.event_date };
+  const [y, mo, d] = e.event_date.split('-').map(Number);
+  const endMin = t.hour * 60 + t.minute + 120;
+  const endDay = new Date(Date.UTC(y, mo - 1, d));
+  endDay.setUTCDate(endDay.getUTCDate() + Math.floor(endMin / 1440));
+  return {
+    allDay: false,
+    start: { y, mo, d, h: t.hour, mi: t.minute },
+    end: { y: endDay.getUTCFullYear(), mo: endDay.getUTCMonth() + 1, d: endDay.getUTCDate(), h: Math.floor((endMin % 1440) / 60), mi: endMin % 60 },
+  };
+};
+
+/** Offset (ms) of a timezone at a given instant, via Intl. */
+const tzOffsetMs = (date, tz) => {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  const p = Object.fromEntries(dtf.formatToParts(date).map(({ type, value }) => [type, value]));
+  const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second);
+  return asUTC - date.getTime();
+};
+
+/** Chicago wall-clock (date + parsed time) -> UTC Date. Two passes so the
+ * DST offset is taken at the corrected instant, not the first guess. */
+const chicagoWallToUTC = (isoDate, { hour, minute }) => {
+  const [y, mo, d] = isoDate.split('-').map(Number);
+  let utc = Date.UTC(y, mo - 1, d, hour, minute);
+  const off1 = tzOffsetMs(new Date(utc), CLUB_TZ);
+  utc -= off1;
+  utc -= tzOffsetMs(new Date(utc), CLUB_TZ) - off1;
+  return new Date(utc);
+};
+
+const fmtUTC = (d) => {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}T${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
+};
+const fmtDate = (y, mo, d) => `${y}${String(mo).padStart(2, '0')}${String(d).padStart(2, '0')}`;
+
+/** Google Calendar "add event" template URL for one event. */
+const googleCalUrl = (e) => {
+  const tm = eventTiming(e);
+  let dates;
+  if (tm.allDay) {
+    const [y, mo, d] = tm.date.split('-').map(Number);
+    const next = new Date(Date.UTC(y, mo - 1, d));
+    next.setUTCDate(next.getUTCDate() + 1);
+    dates = `${fmtDate(y, mo, d)}/${fmtDate(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate())}`;
+  } else {
+    const s = chicagoWallToUTC(e.event_date, { hour: tm.start.h, minute: tm.start.mi });
+    const endISO = `${tm.end.y}-${String(tm.end.mo).padStart(2, '0')}-${String(tm.end.d).padStart(2, '0')}`;
+    const en = chicagoWallToUTC(endISO, { hour: tm.end.h, minute: tm.end.mi });
+    dates = `${fmtUTC(s)}/${fmtUTC(en)}`;
+  }
+  const q = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: e.title,
+    dates,
+    details: (e.description ? e.description + '\n' : '') + (e.attendance_label || attendanceLabel(e)),
+    location: e.location || '',
+  });
+  return 'https://calendar.google.com/calendar/render?' + q.toString();
+};
+
+/** ICS text escaping (RFC 5545). */
+const icsEscape = (s) => String(s ?? '')
+  .replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,')
+  .replace(/\r\n|\r|\n/g, '\\n');
+
+/** Fold a line at 75 octets (RFC 5545); continuation lines start with a space. */
+const foldLine = (line) => {
+  let out = '', cur = '', curBytes = 0;
+  for (const ch of line) {
+    const n = Buffer.byteLength(ch, 'utf8');
+    if (curBytes + n > 75 && cur) { out += (out ? '\r\n ' : '') + cur; cur = ''; curBytes = 0; }
+    cur += ch; curBytes += n;
+  }
+  if (cur) out += (out ? '\r\n ' : '') + cur;
+  return out;
+};
+
+const VTIMEZONE_CHICAGO = [
+  'BEGIN:VTIMEZONE',
+  'TZID:America/Chicago',
+  'BEGIN:DAYLIGHT',
+  'TZOFFSETFROM:-0600',
+  'TZOFFSETTO:-0500',
+  'TZNAME:CDT',
+  'DTSTART:19700308T020000',
+  'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU',
+  'END:DAYLIGHT',
+  'BEGIN:STANDARD',
+  'TZOFFSETFROM:-0500',
+  'TZOFFSETTO:-0600',
+  'TZNAME:CST',
+  'DTSTART:19701101T020000',
+  'RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU',
+  'END:STANDARD',
+  'END:VTIMEZONE',
+];
+
+/** Build the full .ics feed for upcoming events. */
+const buildIcs = (events) => {
+  const dtstamp = fmtUTC(new Date());
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'PRODID:-//Powerpacked//Events Calendar//EN',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:Powerpacked Events',
+    'X-WR-TIMEZONE:America/Chicago',
+    ...VTIMEZONE_CHICAGO,
+  ];
+  for (const e of events) {
+    const tm = eventTiming(e);
+    const desc = (e.description ? e.description + '\n' : '') + e.attendance_label;
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:event-${e.id}@pwrpckd.com`);
+    lines.push(`DTSTAMP:${dtstamp}`);
+    lines.push(`SUMMARY:${icsEscape(e.title)}`);
+    lines.push(`DESCRIPTION:${icsEscape(desc)}`);
+    if (e.location) lines.push(`LOCATION:${icsEscape(e.location)}`);
+    if (tm.allDay) {
+      const [y, mo, d] = tm.date.split('-').map(Number);
+      const next = new Date(Date.UTC(y, mo - 1, d));
+      next.setUTCDate(next.getUTCDate() + 1);
+      lines.push(`DTSTART;VALUE=DATE:${fmtDate(y, mo, d)}`);
+      lines.push(`DTEND;VALUE=DATE:${fmtDate(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate())}`);
+    } else {
+      const f = (p) => `${fmtDate(p.y, p.mo, p.d)}T${String(p.h).padStart(2, '0')}${String(p.mi).padStart(2, '0')}00`;
+      lines.push(`DTSTART;TZID=America/Chicago:${f(tm.start)}`);
+      lines.push(`DTEND;TZID=America/Chicago:${f(tm.end)}`);
+    }
+    lines.push('END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  return lines.map(foldLine).join('\r\n') + '\r\n';
+};
+
 app.get('/admin/events', requireAdmin, (req, res) => {
-  const events = db.prepare('SELECT * FROM events ORDER BY event_date DESC').all();
+  const events = withAttendance(db.prepare('SELECT * FROM events ORDER BY event_date DESC').all());
   res.render('admin-events', { title: 'Manage Events — Powerpacked', events });
 });
 
@@ -738,10 +1075,19 @@ app.get('/admin/events/new', requireAdmin, (req, res) =>
 app.post('/admin/events', requireAdmin, upload.single('image'), (req, res) => {
   const err = validateEvent(req.body);
   if (err) return res.render('admin-event-form', { title: 'New Event — Powerpacked', error: err, event: req.body, formAction: '/admin/events' });
-  db.prepare('INSERT INTO events (title, description, location, event_date, event_time, image) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(req.body.title.trim().slice(0, 120), (req.body.description || '').slice(0, 2000),
-      (req.body.location || '').trim().slice(0, 160), req.body.event_date,
-      (req.body.event_time || '').slice(0, 20), req.file ? '/uploads/' + req.file.filename : null);
+  const att = normAttendance(req.body);
+  const expanded = expandOccurrences(req.body.event_date, req.body.repeat_type, req.body.repeat_until);
+  if (expanded.error) return res.render('admin-event-form', { title: 'New Event — Powerpacked', error: expanded.error, event: req.body, formAction: '/admin/events' });
+  const insert = db.transaction(() => {
+    for (const d of expanded.dates) {
+      db.prepare('INSERT INTO events (title, description, location, event_date, event_time, image, attendance_type, attendance_detail) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(req.body.title.trim().slice(0, 120), (req.body.description || '').slice(0, 2000),
+          (req.body.location || '').trim().slice(0, 160), d,
+          (req.body.event_time || '').slice(0, 20), req.file ? '/uploads/' + req.file.filename : null,
+          att.type, att.detail);
+    }
+  });
+  insert();
   res.redirect('/admin/events');
 });
 app.get('/admin/events/:id/edit', requireAdmin, (req, res) => {
@@ -759,10 +1105,11 @@ app.post('/admin/events/:id', requireAdmin, upload.single('image'), (req, res) =
     if (image) fs.unlink(path.join(uploadDir, path.basename(image)), () => {});
     image = '/uploads/' + req.file.filename;
   }
-  db.prepare('UPDATE events SET title = ?, description = ?, location = ?, event_date = ?, event_time = ?, image = ? WHERE id = ?')
+  const att = normAttendance(req.body);
+  db.prepare('UPDATE events SET title = ?, description = ?, location = ?, event_date = ?, event_time = ?, image = ?, attendance_type = ?, attendance_detail = ? WHERE id = ?')
     .run(req.body.title.trim().slice(0, 120), (req.body.description || '').slice(0, 2000),
       (req.body.location || '').trim().slice(0, 160), req.body.event_date,
-      (req.body.event_time || '').slice(0, 20), image, event.id);
+      (req.body.event_time || '').slice(0, 20), image, att.type, att.detail, event.id);
   res.redirect('/admin/events');
 });
 app.post('/admin/events/:id/delete', requireAdmin, (req, res) => {

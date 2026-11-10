@@ -1,0 +1,15 @@
+<tr>
+  <td class="ev-date" data-label="Date">
+    <strong><%= new Date(e.event_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) %></strong>
+    <% if (e.event_time) { %><br><span class="muted"><%= e.event_time %></span><% } %>
+  </td>
+  <td class="ev-event" data-label="Event">
+    <strong><%= e.title %></strong>
+    <% if (e.location) { %><br><span class="muted"><%= e.location %></span><% } %>
+    <% if (e.description) { %><br><span class="muted ev-desc"><%= e.description %></span><% } %>
+    <% if (e.gcal_url) { %><br><a class="ev-gcal" href="<%= e.gcal_url %>" target="_blank" rel="noopener">Add to Google Calendar</a><% } %>
+  </td>
+  <td class="ev-who" data-label="Who's going">
+    <span class="attendance-badge <%= e.attendance_type || 'none' %>"><%= e.attendance_label %></span>
+  </td>
+</tr>

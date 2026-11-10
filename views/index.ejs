@@ -39,6 +39,7 @@
               <span class="m"><%= new Date(e.event_date + 'T12:00:00').toLocaleString('en-US', { month: 'short' }).toUpperCase() %></span>
             </div>
             <h3><%= e.title %></h3>
+            <p><span class="attendance-badge <%= e.attendance_type || 'none' %>"><%= e.attendance_label %></span></p>
             <% if (e.location) { %><p class="muted"><%= e.location %></p><% } %>
           </a>
         <% }) %>

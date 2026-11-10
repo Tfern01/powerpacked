@@ -1,0 +1,11 @@
+<div class="form-grid">
+  <label>Repeats
+    <select name="repeat_type">
+      <option value="none" <%= repeat_type === 'none' ? 'selected' : '' %>>Does not repeat</option>
+      <option value="weekly" <%= repeat_type === 'weekly' ? 'selected' : '' %>>Weekly</option>
+      <option value="biweekly" <%= repeat_type === 'biweekly' ? 'selected' : '' %>>Every 2 weeks</option>
+      <option value="monthly" <%= repeat_type === 'monthly' ? 'selected' : '' %>>Monthly</option>
+    </select>
+  </label>
+  <label>Repeat until <input type="date" name="repeat_until" value="<%= repeat_until || '' %>"></label>
+</div>
